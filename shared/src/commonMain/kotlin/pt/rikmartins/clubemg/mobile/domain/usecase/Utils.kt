@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.domain.usecase.base
+package pt.rikmartins.clubemg.mobile.domain.usecase
 
 // Typealias for use cases that don't require an input parameter.
 typealias NoRequest = Unit

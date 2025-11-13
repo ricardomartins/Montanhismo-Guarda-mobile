@@ -1,7 +1,7 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
-import pt.rikmartins.clubemg.mobile.domain.usecase.base.UseCase
+import pt.rikmartins.clubemg.mobile.domain.usecase.UseCase
 import kotlinx.datetime.TimeZone
 
 class TimeZoneSupplier(private val repository: EventRepository) : UseCase.Supplier<TimeZone>() {

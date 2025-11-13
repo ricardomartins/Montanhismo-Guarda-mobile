@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.domain.usecase.base
+package pt.rikmartins.clubemg.mobile.domain.usecase
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

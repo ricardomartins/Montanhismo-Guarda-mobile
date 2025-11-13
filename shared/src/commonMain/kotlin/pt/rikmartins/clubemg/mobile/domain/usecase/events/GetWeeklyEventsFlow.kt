@@ -3,7 +3,7 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.events
 import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.entity.WeekOfEvents
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
-import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
+import pt.rikmartins.clubemg.mobile.domain.usecase.WatchCase
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.flow.Flow

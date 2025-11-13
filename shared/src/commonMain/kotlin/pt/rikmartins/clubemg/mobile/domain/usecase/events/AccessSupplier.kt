@@ -1,7 +1,7 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
-import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
+import pt.rikmartins.clubemg.mobile.domain.usecase.WatchCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
