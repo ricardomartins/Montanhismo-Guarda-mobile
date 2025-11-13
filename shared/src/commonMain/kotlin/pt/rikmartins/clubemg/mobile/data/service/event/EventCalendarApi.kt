@@ -1,0 +1,205 @@
+package pt.rikmartins.clubemg.mobile.data.service.event
+
+import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
+import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.get
+import io.ktor.resources.Resource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+
+@OptIn(ExperimentalTime::class)
+class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.EventSource {
+
+    private var _timezone: TimeZone? = null
+
+    override val timezone: TimeZone
+        get() = _timezone ?: DEFAULT_API_TIMEZONE
+
+    override suspend fun getEvents(
+        startDate: Instant,
+        endDate: Instant,
+    ): List<CalendarEvent> = coroutineScope {
+        val startDateAsParam = startDate.toLocalDateTime(timezone).asEventDate()
+        val endDateAsParam = endDate.toLocalDateTime(timezone).asEventDate()
+
+        val events = try {
+            isAccessing.value = true
+            val headPage = async(Dispatchers.IO) {
+                client.get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)).body<EventResponse>()
+            }.await()
+
+            val tailPages = headPage.totalPages.takeIf { it > 1 }?.let { 2..it }
+                ?.map {
+                    async(Dispatchers.IO) {
+                        client.get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = it))
+                            .body<EventResponse>()
+                    }
+                }
+                ?.awaitAll()
+                ?: emptyList()
+            (listOf(headPage) + tailPages).flatMap { it.events }.distinctBy { it.id }
+        } finally {
+            isAccessing.value = false
+        }
+
+        events.map { event ->
+            if (_timezone == null) runCatching { TimeZone.of(event.timezone) }.getOrNull()?.let {
+                _timezone = it
+            }
+
+            ApiCalendarEvent(
+                id = event.id.toString(),
+                creationDate = event.date.asLocalDateTime().toInstant(timezone),
+                modifiedDate = event.modified.asLocalDateTime().toInstant(timezone),
+                url = event.url,
+                title = event.title,
+                description = event.description,
+                allDay = event.allDay,
+                startDate = event.startDate.asLocalDateTime().toInstant(timezone),
+                endDate = event.endDate.asLocalDateTime().toInstant(timezone),
+            )
+        }
+    }
+
+    override val isAccessing: MutableStateFlow<Boolean> = MutableStateFlow(false)
+
+    private fun LocalDateTime.asEventDate(): String = format(EVENT_DATE_TIME_FORMAT)
+    private fun String.asLocalDateTime(): LocalDateTime = LocalDateTime.parse(this, EVENT_DATE_TIME_FORMAT)
+
+    private companion object {
+        const val API_URL = "https://www.montanhismo-guarda.pt/portal/wp-json/tribe"
+
+        val DEFAULT_API_TIMEZONE = TimeZone.of("Europe/Lisbon")
+
+        const val PAGE_SIZE = 10
+
+        val EVENT_DATE_TIME_FORMAT = LocalDateTime.Format {
+            date(LocalDate.Formats.ISO)
+            char(' ')
+            hour()
+            char(':')
+            minute()
+            char(':')
+            second()
+        }
+    }
+
+    private data class ApiCalendarEvent(
+        override val id: String,
+        override val creationDate: Instant,
+        override val modifiedDate: Instant,
+        override val title: String,
+        override val url: String,
+        override val description: String,
+        override val allDay: Boolean,
+        override val startDate: Instant,
+        override val endDate: Instant,
+    ) : CalendarEvent
+
+    @Serializable
+    @Resource("/events")
+    private data class EventsResource(
+        @SerialName("start_date") val startDate: String? = null,
+        @SerialName("end_date") val endDate: String? = null,
+        @SerialName("per_page") val perPage: Int? = PAGE_SIZE,
+        val page: Int? = null,
+    ) {
+        @Serializable
+        @Resource("{id}")
+        data class Id(
+            val parent: EventsResource = EventsResource(),
+            val id: Int,
+        )
+    }
+
+    @Serializable
+    @Resource("/categories")
+    private data class CategoriesResource(
+        val page: Int? = null,
+        @SerialName("per_page") val perPage: Int? = null,
+        val search: String? = null,
+        val exclude: List<Int>? = null,
+        val include: List<Int>? = null,
+        val order: String? = null,
+        val orderby: String? = null,
+        @SerialName("hide_empty") val hideEmpty: Boolean? = null,
+        val parent: Int? = null,
+        val post: Int? = null,
+        val event: Int? = null,
+        val slug: String? = null
+    ) {
+        @Serializable
+        @Resource("{id}")
+        data class Id(val parent: CategoriesResource = CategoriesResource(), val id: Int)
+    }
+
+    @Serializable
+    @Resource("/tags")
+    private data class TagsResource(
+        val page: Int? = null,
+        @SerialName("per_page") val perPage: Int? = null,
+        val search: String? = null,
+        val exclude: List<Int>? = null,
+        val include: List<Int>? = null,
+        val order: String? = null,
+        val orderby: String? = null,
+        @SerialName("hide_empty") val hideEmpty: Boolean? = null,
+        val post: Int? = null,
+        val event: Int? = null,
+        val slug: String? = null
+    ) {
+        @Serializable
+        @Resource("{id}")
+        data class Id(val parent: TagsResource = TagsResource(), val id: Int)
+    }
+
+    @Serializable
+    private data class EventItem(
+        val id: Int, // The event ID
+        val date: String, // The event creation date in the site's timezone
+        val modified: String, // The event last modified date in the site's timezone
+        val url: String, // The URL for the event page
+        val title: String, // The event name
+        val description: String, // The long description of the event
+        @SerialName("all_day") val allDay: Boolean, // Whether this event lasts all day or not
+        @SerialName("start_date") val startDate: String, // The event start date in the site's timezone
+        @SerialName("end_date") val endDate: String, // The event end date in the event or site time zone
+        val timezone: String, // The event time zone string
+        val website: String, // The cost details of the event
+    )
+
+    @Serializable
+    private data class EventResponse(
+        val events: List<EventItem>,
+        val total: Int, // Total events in the response
+        @SerialName("total_pages") val totalPages: Int,
+        @SerialName("rest_url") val restUrl: String,
+        @SerialName("next_rest_url") val nextRestUrl: String? = null,
+        @SerialName("previous_rest_url") val previousRestUrl: String? = null,
+    )
+}
+
+enum class EventStatus(val value: String) {
+    PUBLISH("publish"),
+    DRAFT("draft"),
+    PENDING("pending"),
+    PRIVATE("private"),
+    TRASH("trash")
+}
