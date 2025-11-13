@@ -12,7 +12,11 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningReduce
 import kotlinx.coroutines.flow.scan
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
@@ -34,10 +38,13 @@ class EventRepositoryImpl(
 
     private val _endDate = MutableStateFlow(getLatestDateToStore())
 
-    override fun requestDate(date: Instant) {
+    override fun requestDate(date: LocalDate) {
+        val startDate = date.atStartOfDayIn(eventsTimezone)
+        val endDate = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(eventsTimezone)
+
         when {
-            date < _startDate.value -> _startDate.value = date
-            date > _endDate.value -> _endDate.value = date
+            startDate < _startDate.value -> _startDate.value = startDate
+            endDate > _endDate.value -> _endDate.value = endDate
         }
     }
 
