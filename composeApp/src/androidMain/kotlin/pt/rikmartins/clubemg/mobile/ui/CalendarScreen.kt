@@ -1,9 +1,9 @@
-package pt.rikmartins.clubemg.mobile.screens
+package pt.rikmartins.clubemg.mobile.ui
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -30,21 +31,23 @@ import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ListScreen(navigateToDetails: (objectId: Int) -> Unit) {
-    val viewModel: ListViewModel = koinViewModel()
-    val objects by viewModel.objects.collectAsStateWithLifecycle()
+fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
+    val viewModel: CalendarViewModel = koinViewModel()
+    val objects by viewModel.events.collectAsStateWithLifecycle()
 
-    AnimatedContent(objects.isNotEmpty()) { objectsAvailable ->
-        if (objectsAvailable) {
-            ObjectGrid(
-                objects = objects,
-                onObjectClick = navigateToDetails,
-            )
-        } else {
-            EmptyScreenContent(Modifier.fillMaxSize())
-        }
-    }
 }
+
+@Composable
+private fun Week() {
+    Row() { }
+}
+
+@Preview
+@Composable
+private fun WeekPreview() {
+    Week()
+}
+
 
 @Composable
 private fun ObjectGrid(
