@@ -42,7 +42,7 @@ kotlin {
 
 android {
     namespace = "pt.rikmartins.clubemg.mobile"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "pt.rikmartins.clubemg.mobile"
