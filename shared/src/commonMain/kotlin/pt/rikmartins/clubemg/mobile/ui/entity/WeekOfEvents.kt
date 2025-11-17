@@ -1,11 +1,11 @@
-package pt.rikmartins.clubemg.mobile.domain.entity
+package pt.rikmartins.clubemg.mobile.ui.entity
 
+import kotlinx.datetime.LocalDate
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 data class WeekOfEvents(
-    val range: OpenEndRange<Instant>,
+    val range: ClosedRange<LocalDate>,
     val events: List<Event>,
 ) {
 
