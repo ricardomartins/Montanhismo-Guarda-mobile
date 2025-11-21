@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningReduce
 import kotlinx.coroutines.flow.scan
@@ -38,9 +39,10 @@ class EventRepositoryImpl(
 
     private val _endDate = MutableStateFlow(getLatestDateToStore())
 
-    override fun requestDate(date: LocalDate) {
-        val startDate = date.atStartOfDayIn(eventsTimezone)
-        val endDate = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(eventsTimezone)
+    override suspend fun requestDate(date: LocalDate) {
+        val timezone = eventsTimezone.first()
+        val startDate = date.atStartOfDayIn(timezone)
+        val endDate = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timezone)
 
         when {
             startDate < _startDate.value -> _startDate.value = startDate
@@ -181,7 +183,7 @@ class EventRepositoryImpl(
             merged.sortedBy { it.startDate }
         }
     }
-    override val eventsTimezone: TimeZone
+    override val eventsTimezone: Flow<TimeZone>
         get() = eventSource.timezone
 
     override val providedStartDate by lazy {
@@ -212,7 +214,7 @@ class EventRepositoryImpl(
     interface EventSource {
         suspend fun getEvents(startDate: Instant, endDate: Instant): List<CalendarEvent>
         val isAccessing: Flow<Boolean>
-        val timezone: TimeZone
+        val timezone: Flow<TimeZone>
     }
 
     interface EventStorage {

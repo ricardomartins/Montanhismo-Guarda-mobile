@@ -11,7 +11,12 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -27,15 +32,19 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.EventSource {
 
-    private var _timezone: TimeZone? = null
+    private var _timezone = MutableStateFlow(DEFAULT_API_TIMEZONE)
 
-    override val timezone: TimeZone
-        get() = _timezone ?: DEFAULT_API_TIMEZONE
+    override val timezone: Flow<TimeZone> = _timezone.distinctUntilChangedBy { it }
+        .map { runCatching { TimeZone.of(it) } }
+        .filter { it.isSuccess }
+        .map { it.getOrThrow() }
 
     override suspend fun getEvents(
         startDate: Instant,
         endDate: Instant,
     ): List<CalendarEvent> = coroutineScope {
+        val timezone = timezone.first()
+
         val startDateAsParam = startDate.toLocalDateTime(timezone).asEventDate()
         val endDateAsParam = endDate.toLocalDateTime(timezone).asEventDate()
 
@@ -60,9 +69,7 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         }
 
         events.map { event ->
-            if (_timezone == null) runCatching { TimeZone.of(event.timezone) }.getOrNull()?.let {
-                _timezone = it
-            }
+            _timezone.value = event.timezone
 
             ApiCalendarEvent(
                 id = event.id.toString(),
@@ -86,7 +93,7 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
     private companion object {
         const val API_URL = "https://www.montanhismo-guarda.pt/portal/wp-json/tribe"
 
-        val DEFAULT_API_TIMEZONE = TimeZone.of("Europe/Lisbon")
+        const val DEFAULT_API_TIMEZONE = "Europe/Lisbon"
 
         const val PAGE_SIZE = 10
 

@@ -11,9 +11,9 @@ import kotlin.time.Instant
 interface EventRepository {
     val localAccess: Flow<Boolean>
     val remoteAccess: Flow<Boolean>
-    fun requestDate(date: LocalDate)
+    suspend fun requestDate(date: LocalDate)
     val providedStartDate: Flow<Instant?>
     val providedEndDate: Flow<Instant?>
     val events: Flow<List<CalendarEvent>>
-    val eventsTimezone: TimeZone
+    val eventsTimezone: Flow<TimeZone>
 }
