@@ -17,14 +17,14 @@ sealed class UseCase<in RQ1, in RQ2, out RSP> {
     // Generic invoke operator to handle data transfer object (DTO) conversions.
     @Throws(Throwable::class)
     suspend operator fun <RQ1_DT, RQ2_DT, RSP_DT> invoke(
-        request1Dto: RQ1_DT,
-        request2Dto: RQ2_DT,
-        request1Converter: (RQ1_DT) -> RQ1,
-        request2Converter: (RQ2_DT) -> RQ2,
+        firstRequestDto: RQ1_DT,
+        secondRequestDto: RQ2_DT,
+        firstRequestConverter: (RQ1_DT) -> RQ1,
+        secondRequestConverter: (RQ2_DT) -> RQ2,
         responseConverter: (RSP) -> RSP_DT
     ): RSP_DT {
-        val request1 = request1Converter(request1Dto)
-        val request2 = request2Converter(request2Dto)
+        val request1 = firstRequestConverter(firstRequestDto)
+        val request2 = secondRequestConverter(secondRequestDto)
         val response = execute(request1, request2)
         return responseConverter(response)
     }
