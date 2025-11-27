@@ -33,7 +33,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
-    val objects by viewModel.events.collectAsStateWithLifecycle()
+    val objects by viewModel.weeksOfEvents.collectAsStateWithLifecycle()
 
 }
 
