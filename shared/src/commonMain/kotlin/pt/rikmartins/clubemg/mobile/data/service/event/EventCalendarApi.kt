@@ -91,8 +91,6 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
     private fun String.asLocalDateTime(): LocalDateTime = LocalDateTime.parse(this, EVENT_DATE_TIME_FORMAT)
 
     private companion object {
-        const val API_URL = "https://www.montanhismo-guarda.pt/portal/wp-json/tribe"
-
         const val DEFAULT_API_TIMEZONE = "Europe/Lisbon"
 
         const val PAGE_SIZE = 10
