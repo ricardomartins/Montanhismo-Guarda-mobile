@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningReduce
@@ -70,8 +71,8 @@ class EventRepositoryImpl(
     }
 
     private val freshEvents = combine(
-        _startDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION),
-        _endDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION),
+        _startDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION).distinctUntilChanged(),
+        _endDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION).distinctUntilChanged(),
     ) { startDate, endDate -> startDate to endDate }
         .scan(initial = DateChanges(startDate = Change(), endDate = Change())) { acc, (startDate, endDate) ->
             DateChanges(
