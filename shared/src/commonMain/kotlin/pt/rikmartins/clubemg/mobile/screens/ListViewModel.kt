@@ -8,6 +8,7 @@ import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 
+@Deprecated("Use CalendarViewModel instead")
 class ListViewModel(museumRepository: MuseumRepository) : ViewModel() {
     @NativeCoroutinesState
     val objects: StateFlow<List<MuseumObject>> =

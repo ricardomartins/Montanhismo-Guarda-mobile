@@ -6,7 +6,7 @@ import pt.rikmartins.clubemg.mobile.screens.DetailViewModel
 import pt.rikmartins.clubemg.mobile.screens.ListViewModel
 import org.koin.dsl.module
 
-class MuseumApp : Application() {
+class ClubeMGApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         initKoin(
