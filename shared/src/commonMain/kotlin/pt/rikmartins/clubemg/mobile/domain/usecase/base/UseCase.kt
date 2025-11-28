@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.domain.usecase
+package pt.rikmartins.clubemg.mobile.domain.usecase.base
 
 /**
  * Base class for a UseCase.

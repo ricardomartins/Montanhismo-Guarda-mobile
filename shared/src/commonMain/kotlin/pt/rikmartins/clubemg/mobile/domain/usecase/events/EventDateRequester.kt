@@ -2,7 +2,7 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import kotlinx.datetime.LocalDate
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
-import pt.rikmartins.clubemg.mobile.domain.usecase.UseCase
+import pt.rikmartins.clubemg.mobile.domain.usecase.base.UseCase
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
