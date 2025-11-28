@@ -5,9 +5,10 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventsSupplier
 import com.rickclephas.kmp.observableviewmodel.ViewModel
 import com.rickclephas.kmp.observableviewmodel.launch
 import com.rickclephas.kmp.observableviewmodel.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -21,7 +22,6 @@ import kotlinx.datetime.todayIn
 import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDateRequester
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.TimeZoneSupplier
-import pt.rikmartins.clubemg.mobile.ui.entity.WeekOfEvents
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -32,19 +32,24 @@ class CalendarViewModel(
     private val eventDateRequester: EventDateRequester,
     private val timeZoneSupplier: TimeZoneSupplier,
 ) : ViewModel() {
-    val weeksOfEvents: StateFlow<List<WeekOfEvents>> =
-        eventsSupplier().combine(timeZoneSupplier()) { events, timeZone ->
-            events.fold(mutableMapOf<LocalDateRange, MutableList<CalendarEvent>>()) { acc, calendarEvent ->
-                acc.apply {
-                    calendarEvent.toWeeks(timeZone).forEach { week ->
-                        getOrPut(week) { mutableListOf() }.add(calendarEvent)
-                    }
+
+    private val today = flow {
+        emit(Clock.System.now())
+        delay(15000) // 15 seconds
+    }
+        .combine(timeZoneSupplier()) { today, timeZone -> today.toLocalDateTime(timeZone).date }
+
+    private val weeksOfEvents = eventsSupplier().combine(timeZoneSupplier()) { events, timeZone ->
+        events.fold(mutableMapOf<LocalDateRange, MutableList<CalendarEvent>>()) { acc, calendarEvent ->
+            acc.apply {
+                calendarEvent.toWeeks(timeZone).forEach { week ->
+                    getOrPut(week) { mutableListOf() }.add(calendarEvent)
                 }
             }
-                .map { (range, events) -> WeekOfEvents(range, events) }
-                .sortAndPad(timeZone)
         }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            .map { (range, events) -> WeekOfEvents(range, events) }
+            .sortAndPad(timeZone)
+    }
 
     private fun CalendarEvent.toWeeks(timeZone: TimeZone): List<LocalDateRange> = buildList {
         val startDate = startDate.toLocalDateTime(timeZone).date
@@ -95,10 +100,24 @@ class CalendarViewModel(
         }
     }
 
+    val model =
+        combine(weeksOfEvents, today) { weeksOfEvents, today -> Model(weeksOfEvents, today) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null))
+
     fun requestDateRange(dateRange: ClosedRange<LocalDate>) {
         viewModelScope.launch {
             eventDateRequester(dateRange.start)
             eventDateRequester(dateRange.endInclusive)
         }
     }
+
+    data class WeekOfEvents(
+        val range: LocalDateRange,
+        val events: List<CalendarEvent>,
+    )
+
+    data class Model(
+        val weeksOfEvents: List<WeekOfEvents>,
+        val today: LocalDate?,
+    )
 }
