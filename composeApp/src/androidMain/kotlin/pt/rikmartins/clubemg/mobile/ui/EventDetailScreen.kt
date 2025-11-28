@@ -35,7 +35,7 @@ import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
-import pt.rikmartins.clubemg.mobile.screens.DetailViewModel
+import pt.rikmartins.clubemg.mobile.ui.DetailViewModel
 
 @Composable
 fun EventDetailScreen(objectId: Int, navigateBack: () -> Unit) {
