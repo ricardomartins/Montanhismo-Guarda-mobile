@@ -5,20 +5,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,17 +23,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
+import kotlinx.datetime.minus
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
 
@@ -73,8 +76,8 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.range.start.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents)
-                // TODO: Separator?
+                Week(weekOfEvents, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                HorizontalDivider(thickness = Dp.Hairline)
             }
         }
     }
@@ -82,60 +85,108 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
 
 @Composable
 private fun Week(weekOfEvents: CalendarViewModel.WeekOfEvents, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.heightIn(min = 96.dp)) {
-        weekOfEvents.range.forEach { dayOfEvents -> Day(dayOfEvents, Modifier.weight(1f)) }
-    }
-}
-
-@Composable
-private fun Day(date: LocalDate, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(
-            text = date.day.toString(),
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun DayPreview() {
-    Day(LocalDate(2025, 9, 1), modifier = Modifier.padding(8.dp))
-}
-
-
-@Preview
-@Composable
-private fun WeekPreview() {
-    Week(
-        CalendarViewModel.WeekOfEvents(
-            LocalDateRange(LocalDate(2025, 9, 1), LocalDate(2025, 9, 7)),
-            emptyList()
-        )
-    )
-}
-
-
-@Composable
-private fun ObjectGrid(
-    objects: List<MuseumObject>,
-    onObjectClick: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(180.dp),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = WindowInsets.safeDrawing.asPaddingValues(),
+    ConstraintLayout(
+        modifier = modifier
+            .heightIn(min = 128.dp)
+            .fillMaxWidth()
     ) {
-        items(objects, key = { it.objectID }) { obj ->
-            ObjectFrame(
-                obj = obj,
-                onClick = { onObjectClick(obj.objectID) },
+        val weekdaysGuideline = createGuidelineFromStart(0.2f)
+        val sundayGuideline = createGuidelineFromEnd(0.4f)
+
+        val (weekdayCluster, saturdayText, sundayText, weekdaysDivider, sundayDivider) = createRefs()
+
+        DayCluster(
+            LocalDateRange(
+                weekOfEvents.range.start,
+                weekOfEvents.range.endInclusive.minus(2, DateTimeUnit.DAY)
+            ),
+            modifier = Modifier
+                .constrainAs(weekdayCluster) {
+                    linkTo(parent.start, parent.top, weekdaysGuideline, parent.bottom)
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                }
+        )
+
+        VerticalDivider(
+            thickness = Dp.Hairline,
+            modifier = Modifier.constrainAs(weekdaysDivider) {
+                linkTo(weekdaysGuideline, parent.top, weekdaysGuideline, parent.bottom)
+            },
+        )
+
+        val rangeIterator = weekOfEvents.range.iterator()
+        while (rangeIterator.hasNext() && rangeIterator.next().dayOfWeek != DayOfWeek.FRIDAY);
+
+        Text(
+            text = rangeIterator.next().day.toString(),
+            modifier = Modifier.constrainAs(saturdayText) {
+                linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            },
+            textAlign = TextAlign.Center,
+        )
+
+        VerticalDivider(
+            thickness = Dp.Hairline,
+            modifier = Modifier.constrainAs(sundayDivider) {
+                linkTo(sundayGuideline, parent.top, sundayGuideline, parent.bottom)
+            },
+        )
+
+        Text(
+            text = rangeIterator.next().day.toString(),
+            modifier = Modifier.constrainAs(sundayText) {
+                linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            },
+            textAlign = TextAlign.Center,
+
+        )
+    }
+}
+
+@Composable
+private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, columnCount: Int = 2) {
+    Column(modifier) {
+        val iterator = dates.iterator()
+
+        if (iterator.hasNext()) {
+            Text(
+                text = iterator.next().day.toString(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
             )
+        }
+        while (iterator.hasNext()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                var rowCount = 0
+
+                while (iterator.hasNext() && rowCount < columnCount) {
+                    Text(
+                        text = iterator.next().day.toString(),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+                    rowCount++
+                }
+            }
         }
     }
 }
+
+@Preview
+@Composable
+private fun WeekPreview() = Week(
+    CalendarViewModel.WeekOfEvents(
+        LocalDateRange(LocalDate(2025, 9, 1), LocalDate(2025, 9, 7)),
+        emptyList(),
+    )
+)
 
 @Composable
 private fun ObjectFrame(
