@@ -65,7 +65,7 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             val todayWeekIndex = weeks.indexOfFirst { today in it.range }
             if (todayWeekIndex >= 0) {
                 coroutineScope.launch {
-                    listState.animateScrollToItem(todayWeekIndex)
+                    listState.scrollToItem(todayWeekIndex)
                 }
             }
         }
