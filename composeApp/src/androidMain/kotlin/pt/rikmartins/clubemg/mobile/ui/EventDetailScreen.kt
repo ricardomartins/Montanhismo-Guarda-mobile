@@ -93,13 +93,13 @@ private fun EventDetails(
                 Column(Modifier.padding(12.dp)) {
                     Text(obj.title, style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(6.dp))
-                    LabeledInfo(stringResource(R.string.label_artist), obj.artistDisplayName)
-                    LabeledInfo(stringResource(R.string.label_date), obj.objectDate)
-                    LabeledInfo(stringResource(R.string.label_dimensions), obj.dimensions)
-                    LabeledInfo(stringResource(R.string.label_medium), obj.medium)
-                    LabeledInfo(stringResource(R.string.label_department), obj.department)
-                    LabeledInfo(stringResource(R.string.label_repository), obj.repository)
-                    LabeledInfo(stringResource(R.string.label_credits), obj.creditLine)
+//                    LabeledInfo(stringResource(R.string.label_artist), obj.artistDisplayName)
+//                    LabeledInfo(stringResource(R.string.label_date), obj.objectDate)
+//                    LabeledInfo(stringResource(R.string.label_dimensions), obj.dimensions)
+//                    LabeledInfo(stringResource(R.string.label_medium), obj.medium)
+//                    LabeledInfo(stringResource(R.string.label_department), obj.department)
+//                    LabeledInfo(stringResource(R.string.label_repository), obj.repository)
+//                    LabeledInfo(stringResource(R.string.label_credits), obj.creditLine)
                 }
             }
         }

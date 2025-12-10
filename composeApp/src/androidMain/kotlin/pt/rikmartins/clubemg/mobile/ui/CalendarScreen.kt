@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
@@ -27,16 +26,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -44,6 +46,7 @@ import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.minus
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
+import pt.rikmartins.clubemg.mobile.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,24 +54,34 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
 
     val today = model.today
     val weeks = model.weeksOfEvents
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Calendar") })
-        }
-    ) { paddingValues ->
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    LaunchedEffect(weeks) {
         if (weeks.isNotEmpty() && today != null) {
             val todayWeekIndex = weeks.indexOfFirst { today in it.range }
-            if (todayWeekIndex >= 0) {
-                coroutineScope.launch {
-                    listState.scrollToItem(todayWeekIndex)
-                }
-            }
+            if (todayWeekIndex >= 0) listState.scrollToItem(todayWeekIndex)
         }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.title_calendar)) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    // Color when the content is not scrolled
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    // Color when the content is scrolled
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        }
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -144,7 +157,7 @@ private fun Week(weekOfEvents: CalendarViewModel.WeekOfEvents, modifier: Modifie
             },
             textAlign = TextAlign.Center,
 
-        )
+            )
     }
 }
 
@@ -157,12 +170,16 @@ private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, col
             Text(
                 text = iterator.next().day.toString(),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             )
         }
         while (iterator.hasNext()) {
             Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
                 var rowCount = 0
 
@@ -170,8 +187,10 @@ private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, col
                     Text(
                         text = iterator.next().day.toString(),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
                     rowCount++
                 }
             }
