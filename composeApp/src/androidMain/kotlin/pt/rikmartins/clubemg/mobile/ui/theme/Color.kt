@@ -23,9 +23,9 @@ val Background = Color(0xFFfcfcfc)
 val OnBackground = Color(0xFF313133)
 val Surface = Color(0xFFfcfcfc)
 val OnSurface = Color(0xFF313133)
-val SurfaceVariant = Color(0xFFdbdde6)
-val OnSurfaceVariant = Color(0xFF575966)
-val Outline = Color(0xFF828699)
+val SurfaceVariant = Color(0xFFDDE1FF)
+val OnSurfaceVariant = Color(0xFF424563)
+val Outline = Color(0xFF727593)
 
 // Dark Theme Colors
 val PrimaryDark = Color(0xFF99A6E6)
@@ -48,9 +48,9 @@ val BackgroundDark = Color(0xFF313133)
 val OnBackgroundDark = Color(0xFFe3e3e6)
 val SurfaceDark = Color(0xFF313133)
 val OnSurfaceDark = Color(0xFFe3e3e6)
-val SurfaceVariantDark = Color(0xFF575966)
-val OnSurfaceVariantDark = Color(0xFFd6d9e6)
-val OutlineDark = Color(0xFFa2a5b3)
+val SurfaceVariantDark = Color(0xFF424563)
+val OnSurfaceVariantDark = Color(0xFFC3C5E4)
+val OutlineDark = Color(0xFF8C8EA9)
 
 // Custom Colors
 
