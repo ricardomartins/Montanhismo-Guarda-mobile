@@ -1,6 +1,7 @@
 package pt.rikmartins.clubemg.mobile.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,10 +19,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,7 +88,11 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.range.start.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Week(
+                    weekOfEvents, today,
+                    modifier = Modifier
+                        .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 8.dp),
+                )
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }
@@ -95,7 +100,11 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
 }
 
 @Composable
-private fun Week(weekOfEvents: CalendarViewModel.WeekOfEvents, modifier: Modifier = Modifier) {
+private fun Week(
+    weekOfEvents: CalendarViewModel.WeekOfEvents,
+    today: LocalDate?,
+    modifier: Modifier = Modifier
+) {
     ConstraintLayout(
         modifier = modifier
             .heightIn(min = 128.dp)
@@ -111,6 +120,7 @@ private fun Week(weekOfEvents: CalendarViewModel.WeekOfEvents, modifier: Modifie
                 weekOfEvents.range.start,
                 weekOfEvents.range.endInclusive.minus(2, DateTimeUnit.DAY)
             ),
+            today = today,
             modifier = Modifier
                 .constrainAs(weekdayCluster) {
                     linkTo(parent.start, parent.top, weekdaysGuideline, parent.bottom)
@@ -119,59 +129,119 @@ private fun Week(weekOfEvents: CalendarViewModel.WeekOfEvents, modifier: Modifie
                 }
         )
 
+        val saturday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SATURDAY }
+        val sunday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SUNDAY }
+
+        Box(
+            contentAlignment = Alignment.TopCenter,
+            modifier = Modifier
+                .constrainAs(saturdayText) {
+                    linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                }
+        ) { WeekEndDayLabel(text = saturday.day.toString(), highlight = today == saturday) }
+
+        Box(
+            contentAlignment = Alignment.TopCenter,
+            modifier = Modifier
+                .constrainAs(sundayText) {
+                    linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
+                    width = Dimension.fillToConstraints
+                    height = Dimension.fillToConstraints
+                }
+        ) { WeekEndDayLabel(text = sunday.day.toString(), highlight = today == sunday) }
+
         VerticalDivider(
             thickness = Dp.Hairline,
             modifier = Modifier.constrainAs(weekdaysDivider) {
-                linkTo(weekdaysGuideline, parent.top, weekdaysGuideline, parent.bottom)
+                linkTo(
+                    start = weekdaysGuideline,
+                    top = parent.top,
+                    end = weekdaysGuideline,
+                    bottom = parent.bottom
+                )
             },
-        )
-
-        val rangeIterator = weekOfEvents.range.iterator()
-        while (rangeIterator.hasNext() && rangeIterator.next().dayOfWeek != DayOfWeek.FRIDAY);
-
-        Text(
-            text = rangeIterator.next().day.toString(),
-            modifier = Modifier.constrainAs(saturdayText) {
-                linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-            },
-            textAlign = TextAlign.Center,
         )
 
         VerticalDivider(
             thickness = Dp.Hairline,
             modifier = Modifier.constrainAs(sundayDivider) {
-                linkTo(sundayGuideline, parent.top, sundayGuideline, parent.bottom)
+                linkTo(
+                    start = sundayGuideline,
+                    top = parent.top,
+                    end = sundayGuideline,
+                    bottom = parent.bottom
+                )
             },
         )
-
-        Text(
-            text = rangeIterator.next().day.toString(),
-            modifier = Modifier.constrainAs(sundayText) {
-                linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-            },
-            textAlign = TextAlign.Center,
-
-            )
     }
 }
 
 @Composable
-private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, columnCount: Int = 2) {
+private fun WeekEndDayLabel(text: String, highlight: Boolean) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .run {
+                if (highlight) background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium
+                ) else this
+            }
+            .padding(4.dp),
+    )
+}
+
+@Composable
+private fun WeekDayLabel(text: String, highlight: Boolean) {
+    Text(
+        text = text,
+        Modifier
+            .run {
+                if (highlight) background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium
+                ) else this
+            }
+            .padding(4.dp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
+@Composable
+private fun BaseDayLabel(text: String, highlight: Boolean) {
+    Text(
+        text = text,
+        Modifier
+            .run {
+                if (highlight) background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium
+                ) else this
+            }
+            .padding(4.dp),
+    )
+}
+
+@Composable
+private fun DayCluster(
+    dates: LocalDateRange,
+    today: LocalDate?,
+    modifier: Modifier = Modifier,
+    columnCount: Int = 2,
+) {
     Column(modifier) {
         val iterator = dates.iterator()
 
-        if (iterator.hasNext()) {
-            Text(
-                text = iterator.next().day.toString(),
-                textAlign = TextAlign.Center,
+        if (iterator.hasNext()) iterator.next().let { localDate ->
+            Box(
+                contentAlignment = Alignment.TopCenter,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-            )
+            ) { WeekDayLabel(text = localDate.day.toString(), highlight = today == localDate) }
         }
         while (iterator.hasNext()) {
             Row(
@@ -182,13 +252,18 @@ private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, col
                 var rowCount = 0
 
                 while (iterator.hasNext() && rowCount < columnCount) {
-                    Text(
-                        text = iterator.next().day.toString(),
-                        textAlign = TextAlign.Center,
+                    val localDate = iterator.next()
+                    Box(
+                        contentAlignment = Alignment.TopCenter,
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
-                    )
+                            .fillMaxHeight(),
+                    ) {
+                        WeekDayLabel(
+                            text = localDate.day.toString(),
+                            highlight = today == localDate
+                        )
+                    }
                     rowCount++
                 }
             }
@@ -199,10 +274,14 @@ private fun DayCluster(dates: LocalDateRange, modifier: Modifier = Modifier, col
 @Preview
 @Composable
 private fun WeekPreview() = Week(
-    CalendarViewModel.WeekOfEvents(
-        LocalDateRange(LocalDate(2025, 9, 1), LocalDate(2025, 9, 7)),
-        emptyList(),
-    )
+    weekOfEvents = CalendarViewModel.WeekOfEvents(
+        range = LocalDateRange(
+            start = LocalDate(2025, 9, 1),
+            endInclusive = LocalDate(2025, 9, 7)
+        ),
+        events = emptyList(),
+    ),
+    today = LocalDate(2025, 9, 6),
 )
 
 @Composable
