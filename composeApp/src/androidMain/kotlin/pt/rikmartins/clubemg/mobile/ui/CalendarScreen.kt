@@ -72,10 +72,8 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.title_calendar)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    // Color when the content is not scrolled
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    // Color when the content is scrolled
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
                 scrollBehavior = scrollBehavior,
