@@ -12,8 +12,6 @@ import androidx.compose.ui.graphics.Color
 
 @Immutable
 data class CustomColorsPalette(
-    val monthSurfacePast: Color = Color.Unspecified,
-    val monthOnSurfacePast: Color = Color.Unspecified,
     val monthSurface1: Color = Color.Unspecified,
     val monthOnSurface1: Color = Color.Unspecified,
     val monthSurface2: Color = Color.Unspecified,
@@ -23,8 +21,6 @@ data class CustomColorsPalette(
 )
 
 val LightCustomColorsPalette = CustomColorsPalette(
-    monthSurfacePast = MonthSurfacePast,
-    monthOnSurfacePast = MonthOnSurfacePast,
     monthSurface1 = MonthSurface1,
     monthOnSurface1 = MonthOnSurface1,
     monthSurface2 = MonthSurface2,
@@ -34,8 +30,6 @@ val LightCustomColorsPalette = CustomColorsPalette(
 )
 
 val DarkCustomColorsPalette = CustomColorsPalette(
-    monthSurfacePast = MonthSurfacePastDark,
-    monthOnSurfacePast = MonthOnSurfacePastDark,
     monthSurface1 = MonthSurface1Dark,
     monthOnSurface1 = MonthOnSurface1Dark,
     monthSurface2 = MonthSurface2Dark,

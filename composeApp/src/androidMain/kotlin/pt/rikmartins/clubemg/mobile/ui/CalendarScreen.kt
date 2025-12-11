@@ -237,8 +237,8 @@ private fun DayBox(
     val onSurfaceColor: Color
     when {
         isPast -> {
-            surfaceColor = LocalCustomColorsPalette.current.monthSurfacePast
-            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurfacePast
+            surfaceColor = Color.Unspecified
+            onSurfaceColor = Color.Unspecified
         }
 
         monthColorSet == 0 -> {
