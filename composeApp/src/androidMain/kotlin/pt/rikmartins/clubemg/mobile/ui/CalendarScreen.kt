@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,7 +31,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -104,82 +102,90 @@ private fun Week(
     weekOfEvents: CalendarViewModel.WeekOfEvents,
     today: LocalDate?,
     modifier: Modifier = Modifier
+) = ConstraintLayout(
+    modifier = modifier
+        .height(160.dp)
+        .fillMaxWidth()
 ) {
-    ConstraintLayout(
-        modifier = modifier
-            .heightIn(min = 128.dp)
-            .fillMaxWidth()
-    ) {
-        val weekdaysGuideline = createGuidelineFromStart(WEEKDAYS_GUIDELINE)
-        val sundayGuideline = createGuidelineFromEnd(SUNDAY_GUIDELINE)
+    val weekdaysGuideline = createGuidelineFromStart(WEEKDAYS_GUIDELINE)
+    val sundayGuideline = createGuidelineFromEnd(SUNDAY_GUIDELINE)
 
-        val (weekdayCluster, saturdayText, sundayText, weekdaysDivider, sundayDivider) = createRefs()
+    val (weekdayCluster, saturdayText, sundayText, weekdaysDivider, sundayDivider) = createRefs()
 
-        DayCluster(
-            LocalDateRange(
-                weekOfEvents.range.start,
-                weekOfEvents.range.endInclusive.minus(2, DateTimeUnit.DAY)
-            ),
-            today = today,
-            modifier = Modifier
-                .constrainAs(weekdayCluster) {
-                    linkTo(parent.start, parent.top, weekdaysGuideline, parent.bottom)
-                    width = Dimension.fillToConstraints
-                    height = Dimension.fillToConstraints
-                }
-        )
+    val isPast = today?.let { weekOfEvents.range.endInclusive < today } ?: false
 
-        val saturday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SATURDAY }
-        val sunday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SUNDAY }
+    DayCluster(
+        LocalDateRange(
+            weekOfEvents.range.start,
+            weekOfEvents.range.endInclusive.minus(2, DateTimeUnit.DAY)
+        ),
+        today = today,
+        isPast = isPast,
+        modifier = Modifier
+            .constrainAs(weekdayCluster) {
+                linkTo(parent.start, parent.top, weekdaysGuideline, parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            }
+    )
 
-        DayBox(
-            localDate = saturday,
-            isToday = today == saturday,
-            isPast = today?.let { saturday < today } ?: true,
-            modifier = Modifier
-                .constrainAs(saturdayText) {
-                    linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
-                    width = Dimension.fillToConstraints
-                    height = Dimension.fillToConstraints
-                }
-        )
+    val saturday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SATURDAY }
+    val sunday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SUNDAY }
 
-        DayBox(
-            localDate = sunday,
-            isToday = today == sunday,
-            isPast = today?.let { sunday < today } ?: true,
-            modifier = Modifier
-                .constrainAs(sundayText) {
-                    linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
-                    width = Dimension.fillToConstraints
-                    height = Dimension.fillToConstraints
-                }
-        )
+    DayBox(
+        localDate = saturday,
+        today = today,
+        isPast = isPast,
+        modifier = Modifier
+            .constrainAs(saturdayText) {
+                linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            }
+    )
 
-        VerticalDivider(
-            thickness = Dp.Hairline,
-            modifier = Modifier.constrainAs(weekdaysDivider) {
-                linkTo(
-                    start = weekdaysGuideline,
-                    top = parent.top,
-                    end = weekdaysGuideline,
-                    bottom = parent.bottom
-                )
-            },
-        )
+    DayBox(
+        localDate = sunday,
+        today = today,
+        isPast = isPast,
+        modifier = Modifier
+            .constrainAs(sundayText) {
+                linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            }
+    )
 
-        VerticalDivider(
-            thickness = Dp.Hairline,
-            modifier = Modifier.constrainAs(sundayDivider) {
-                linkTo(
-                    start = sundayGuideline,
-                    top = parent.top,
-                    end = sundayGuideline,
-                    bottom = parent.bottom
-                )
-            },
-        )
-    }
+    // TODO: Test this further or delete. It didn't look good in the first versions.
+//    VerticalDivider(
+//        thickness = Dp.Hairline,
+//        modifier = Modifier
+//            .constrainAs(weekdaysDivider) {
+//                linkTo(
+//                    start = weekdaysGuideline,
+//                    top = parent.top,
+//                    end = weekdaysGuideline,
+//                    bottom = parent.bottom
+//                )
+//                height = Dimension.fillToConstraints
+//            }
+//            .padding(vertical = 16.dp),
+//    )
+
+//    VerticalDivider(
+//        thickness = Dp.Hairline,
+//        modifier = Modifier
+//            .constrainAs(sundayDivider) {
+//                linkTo(
+//                    start = sundayGuideline,
+//                    top = parent.top,
+//                    end = sundayGuideline,
+//                    bottom = parent.bottom
+//                )
+//                height = Dimension.fillToConstraints
+//            }
+//            .padding(vertical = 16.dp),
+//    )
 }
 
 @Composable
@@ -213,21 +219,25 @@ private fun WeekDayLabel(text: String, isToday: Boolean, color: Color = Color.Un
 )
 
 @Composable
-private fun DayLabel(localDate: LocalDate, isToday: Boolean, color: Color = Color.Unspecified) =
+private fun DayLabel(localDate: LocalDate, today: LocalDate?, color: Color = Color.Unspecified) =
     when (localDate.dayOfWeek) {
         DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> WeekEndDayLabel(
             text = localDate.day.toString(),
-            isToday = isToday,
+            isToday = localDate == today,
             color = color,
         )
 
-        else -> WeekDayLabel(text = localDate.day.toString(), isToday = isToday, color = color)
+        else -> WeekDayLabel(
+            text = localDate.day.toString(),
+            isToday = localDate == today,
+            color = color
+        )
     }
 
 @Composable
 private fun DayBox(
     localDate: LocalDate,
-    isToday: Boolean,
+    today: LocalDate?,
     isPast: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -260,29 +270,28 @@ private fun DayBox(
     Box(
         contentAlignment = Alignment.TopCenter,
         modifier = modifier.background(surfaceColor),
-    ) { DayLabel(localDate, isToday, color = onSurfaceColor) }
+    ) { DayLabel(localDate, today, color = onSurfaceColor) }
 }
 
 @Composable
 private fun DayCluster(
     dates: LocalDateRange,
     today: LocalDate?,
+    isPast: Boolean,
     modifier: Modifier = Modifier,
     columnCount: Int = 2, // TODO: Remove
 ) {
     Column(modifier) {
         val iterator = dates.iterator()
 
-        if (iterator.hasNext()) iterator.next().let { localDate ->
-            DayBox(
-                localDate = localDate,
-                isToday = today == localDate,
-                isPast = today?.let { localDate < today } ?: true,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-        }
+        if (iterator.hasNext()) DayBox(
+            localDate = iterator.next(),
+            today = today,
+            isPast = isPast,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        )
         while (iterator.hasNext()) {
             Row(
                 modifier = Modifier
@@ -292,11 +301,10 @@ private fun DayCluster(
                 var rowCount = 0
 
                 while (iterator.hasNext() && rowCount < columnCount) {
-                    val localDate = iterator.next()
                     DayBox(
-                        localDate = localDate,
-                        isToday = today == localDate,
-                        isPast = today?.let { localDate < today } ?: true,
+                        localDate = iterator.next(),
+                        today = today,
+                        isPast = isPast,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
