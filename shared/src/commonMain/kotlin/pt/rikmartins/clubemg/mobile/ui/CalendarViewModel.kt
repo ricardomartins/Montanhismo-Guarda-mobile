@@ -23,6 +23,7 @@ import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDateRequester
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.TimeZoneSupplier
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -35,7 +36,7 @@ class CalendarViewModel(
 
     private val today = flow {
         emit(Clock.System.now())
-        delay(15000) // 15 seconds
+        delay(5.minutes)
     }
         .combine(timeZoneSupplier()) { today, timeZone -> today.toLocalDateTime(timeZone).date }
 
