@@ -56,26 +56,26 @@ val OutlineDark = Color(0xFFa2a5b3)
 
 // Light Theme Colors
 val MonthSurfacePast = Color(0xFFF5F4F0)
-val OnMonthSurfacePast = Color(0xFF5C5B57)
+val MonthOnSurfacePast = Color(0xFF5C5B57)
 
 val MonthSurface1 = Color(0xFFEAF3E9)
-val OnMonthSurface1 = Color(0xFF233322)
+val MonthOnSurface1 = Color(0xFF233322)
 
 val MonthSurface2 = Color(0xFFFFF4E1)
-val OnMonthSurface2 = Color(0xFF332B1C)
+val MonthOnSurface2 = Color(0xFF332B1C)
 
 val MonthSurface3 = Color(0xFFE6F0F9)
-val OnMonthSurface3 = Color(0xFF1F2C3A)
+val MonthOnSurface3 = Color(0xFF1F2C3A)
 
 // Dark Theme Colors
 val MonthSurfacePastDark = Color(0xFF44423D)
-val OnMonthSurfacePastDark = Color(0xFFCBC9C2)
+val MonthOnSurfacePastDark = Color(0xFFCBC9C2)
 
 val MonthSurface1Dark = Color(0xFF2C3B2A)
-val OnMonthSurface1Dark = Color(0xFFD9E6D7)
+val MonthOnSurface1Dark = Color(0xFFD9E6D7)
 
 val MonthSurface2Dark = Color(0xFF453D2E)
-val OnMonthSurface2Dark = Color(0xFFE6DDCB)
+val MonthOnSurface2Dark = Color(0xFFE6DDCB)
 
 val MonthSurface3Dark = Color(0xFF2A3745)
-val OnMonthSurface3Dark = Color(0xFFD7E0E8)
+val MonthOnSurface3Dark = Color(0xFFD7E0E8)

@@ -48,6 +48,7 @@ import kotlinx.datetime.minus
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,16 +89,15 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.range.start.toEpochDays() }) { weekOfEvents ->
-                Week(
-                    weekOfEvents, today,
-                    modifier = Modifier
-                        .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 8.dp),
-                )
+                Week(weekOfEvents, today)
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }
     }
 }
+
+private const val WEEKDAYS_GUIDELINE = 1f / 6f
+private const val SUNDAY_GUIDELINE = (1f - WEEKDAYS_GUIDELINE) / 2f
 
 @Composable
 private fun Week(
@@ -110,8 +110,8 @@ private fun Week(
             .heightIn(min = 128.dp)
             .fillMaxWidth()
     ) {
-        val weekdaysGuideline = createGuidelineFromStart(0.2f)
-        val sundayGuideline = createGuidelineFromEnd(0.4f)
+        val weekdaysGuideline = createGuidelineFromStart(WEEKDAYS_GUIDELINE)
+        val sundayGuideline = createGuidelineFromEnd(SUNDAY_GUIDELINE)
 
         val (weekdayCluster, saturdayText, sundayText, weekdaysDivider, sundayDivider) = createRefs()
 
@@ -132,25 +132,29 @@ private fun Week(
         val saturday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SATURDAY }
         val sunday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SUNDAY }
 
-        Box(
-            contentAlignment = Alignment.TopCenter,
+        DayBox(
+            localDate = saturday,
+            isToday = today == saturday,
+            isPast = today?.let { saturday < today } ?: true,
             modifier = Modifier
                 .constrainAs(saturdayText) {
                     linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
                     width = Dimension.fillToConstraints
                     height = Dimension.fillToConstraints
                 }
-        ) { WeekEndDayLabel(text = saturday.day.toString(), highlight = today == saturday) }
+        )
 
-        Box(
-            contentAlignment = Alignment.TopCenter,
+        DayBox(
+            localDate = sunday,
+            isToday = today == sunday,
+            isPast = today?.let { sunday < today } ?: true,
             modifier = Modifier
                 .constrainAs(sundayText) {
                     linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
                     width = Dimension.fillToConstraints
                     height = Dimension.fillToConstraints
                 }
-        ) { WeekEndDayLabel(text = sunday.day.toString(), highlight = today == sunday) }
+        )
 
         VerticalDivider(
             thickness = Dp.Hairline,
@@ -179,50 +183,84 @@ private fun Week(
 }
 
 @Composable
-private fun WeekEndDayLabel(text: String, highlight: Boolean) {
+private fun WeekEndDayLabel(text: String, isToday: Boolean, color: Color = Color.Unspecified) =
     Text(
         text = text,
         modifier = Modifier
             .run {
-                if (highlight) background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium
+                if (isToday) background(
+                    color = MaterialTheme.colorScheme.inverseSurface,
+                    shape = MaterialTheme.shapes.medium,
                 ) else this
             }
             .padding(4.dp),
+        color = if (isToday) MaterialTheme.colorScheme.inverseOnSurface else color,
     )
-}
 
 @Composable
-private fun WeekDayLabel(text: String, highlight: Boolean) {
-    Text(
-        text = text,
-        Modifier
-            .run {
-                if (highlight) background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium
-                ) else this
-            }
-            .padding(4.dp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.bodySmall,
-    )
-}
+private fun WeekDayLabel(text: String, isToday: Boolean, color: Color = Color.Unspecified) = Text(
+    text = text,
+    modifier = Modifier
+        .run {
+            if (isToday) background(
+                color = MaterialTheme.colorScheme.inverseSurface,
+                shape = MaterialTheme.shapes.medium
+            ) else this
+        }
+        .padding(4.dp),
+    color = if (isToday) MaterialTheme.colorScheme.inverseOnSurface else color,
+    style = MaterialTheme.typography.bodySmall,
+)
 
 @Composable
-private fun BaseDayLabel(text: String, highlight: Boolean) {
-    Text(
-        text = text,
-        Modifier
-            .run {
-                if (highlight) background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium
-                ) else this
-            }
-            .padding(4.dp),
-    )
+private fun DayLabel(localDate: LocalDate, isToday: Boolean, color: Color = Color.Unspecified) =
+    when (localDate.dayOfWeek) {
+        DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> WeekEndDayLabel(
+            text = localDate.day.toString(),
+            isToday = isToday,
+            color = color,
+        )
+
+        else -> WeekDayLabel(text = localDate.day.toString(), isToday = isToday, color = color)
+    }
+
+@Composable
+private fun DayBox(
+    localDate: LocalDate,
+    isToday: Boolean,
+    isPast: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val monthColorSet = localDate.month.ordinal % 3
+
+    val surfaceColor: Color
+    val onSurfaceColor: Color
+    when {
+        isPast -> {
+            surfaceColor = LocalCustomColorsPalette.current.monthSurfacePast
+            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurfacePast
+        }
+
+        monthColorSet == 0 -> {
+            surfaceColor = LocalCustomColorsPalette.current.monthSurface1
+            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface1
+        }
+
+        monthColorSet == 1 -> {
+            surfaceColor = LocalCustomColorsPalette.current.monthSurface2
+            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface2
+        }
+
+        else -> {
+            surfaceColor = LocalCustomColorsPalette.current.monthSurface3
+            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface3
+        }
+    }
+
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = modifier.background(surfaceColor),
+    ) { DayLabel(localDate, isToday, color = onSurfaceColor) }
 }
 
 @Composable
@@ -230,18 +268,20 @@ private fun DayCluster(
     dates: LocalDateRange,
     today: LocalDate?,
     modifier: Modifier = Modifier,
-    columnCount: Int = 2,
+    columnCount: Int = 2, // TODO: Remove
 ) {
     Column(modifier) {
         val iterator = dates.iterator()
 
         if (iterator.hasNext()) iterator.next().let { localDate ->
-            Box(
-                contentAlignment = Alignment.TopCenter,
+            DayBox(
+                localDate = localDate,
+                isToday = today == localDate,
+                isPast = today?.let { localDate < today } ?: true,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-            ) { WeekDayLabel(text = localDate.day.toString(), highlight = today == localDate) }
+            )
         }
         while (iterator.hasNext()) {
             Row(
@@ -253,17 +293,14 @@ private fun DayCluster(
 
                 while (iterator.hasNext() && rowCount < columnCount) {
                     val localDate = iterator.next()
-                    Box(
-                        contentAlignment = Alignment.TopCenter,
+                    DayBox(
+                        localDate = localDate,
+                        isToday = today == localDate,
+                        isPast = today?.let { localDate < today } ?: true,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                    ) {
-                        WeekDayLabel(
-                            text = localDate.day.toString(),
-                            highlight = today == localDate
-                        )
-                    }
+                    )
                     rowCount++
                 }
             }

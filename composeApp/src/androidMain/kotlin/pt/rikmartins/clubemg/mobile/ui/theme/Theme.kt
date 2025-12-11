@@ -13,35 +13,35 @@ import androidx.compose.ui.graphics.Color
 @Immutable
 data class CustomColorsPalette(
     val monthSurfacePast: Color = Color.Unspecified,
-    val onMonthSurfacePast: Color = Color.Unspecified,
+    val monthOnSurfacePast: Color = Color.Unspecified,
     val monthSurface1: Color = Color.Unspecified,
-    val onMonthSurface1: Color = Color.Unspecified,
+    val monthOnSurface1: Color = Color.Unspecified,
     val monthSurface2: Color = Color.Unspecified,
-    val onMonthSurface2: Color = Color.Unspecified,
+    val monthOnSurface2: Color = Color.Unspecified,
     val monthSurface3: Color = Color.Unspecified,
-    val onMonthSurface3: Color = Color.Unspecified,
+    val monthOnSurface3: Color = Color.Unspecified,
 )
 
 val LightCustomColorsPalette = CustomColorsPalette(
     monthSurfacePast = MonthSurfacePast,
-    onMonthSurfacePast = OnMonthSurfacePast,
+    monthOnSurfacePast = MonthOnSurfacePast,
     monthSurface1 = MonthSurface1,
-    onMonthSurface1 = OnMonthSurface1,
+    monthOnSurface1 = MonthOnSurface1,
     monthSurface2 = MonthSurface2,
-    onMonthSurface2 = OnMonthSurface2,
+    monthOnSurface2 = MonthOnSurface2,
     monthSurface3 = MonthSurface3,
-    onMonthSurface3 = OnMonthSurface3,
+    monthOnSurface3 = MonthOnSurface3,
 )
 
 val DarkCustomColorsPalette = CustomColorsPalette(
     monthSurfacePast = MonthSurfacePastDark,
-    onMonthSurfacePast = OnMonthSurfacePastDark,
+    monthOnSurfacePast = MonthOnSurfacePastDark,
     monthSurface1 = MonthSurface1Dark,
-    onMonthSurface1 = OnMonthSurface1Dark,
+    monthOnSurface1 = MonthOnSurface1Dark,
     monthSurface2 = MonthSurface2Dark,
-    onMonthSurface2 = OnMonthSurface2Dark,
+    monthOnSurface2 = MonthOnSurface2Dark,
     monthSurface3 = MonthSurface3Dark,
-    onMonthSurface3 = OnMonthSurface3Dark,
+    monthOnSurface3 = MonthOnSurface3Dark,
 )
 
 val LocalCustomColorsPalette = staticCompositionLocalOf { CustomColorsPalette() }
