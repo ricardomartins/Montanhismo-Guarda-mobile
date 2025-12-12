@@ -44,6 +44,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
+import kotlinx.datetime.Month
 import kotlinx.datetime.minus
 import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
@@ -128,8 +129,11 @@ private fun Week(
         LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(sunday)
 
     Text(
-        text = sunday.toJavaLocalDate()
-            .format(DateTimeFormatter.ofPattern("MMMM")),
+        text = sunday.toJavaLocalDate().format(
+                DateTimeFormatter.ofPattern(
+                    if (sunday.month == Month.JANUARY) "MMMM y" else "MMMM"
+                )
+            ),
         modifier = Modifier
             .constrainAs(monthText) {
                 start.linkTo(
