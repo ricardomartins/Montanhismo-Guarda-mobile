@@ -55,27 +55,21 @@ val OutlineDark = Color(0xFF8C8EA9)
 // Custom Colors
 
 // Light Theme Colors
-// Month Color 1: A very light, neutral beige.
-val MonthSurface1 = Color(0xFFF9F6F2)
-val MonthOnSurface1 = Color(0xFF534F4A)
+val MonthSurface1 = Color(0xFFFFF4F2)
+val MonthOnSurface1 = Color(0xFF5A4D4A)
 
-// Month Color 2: A slightly cooler, very light gray-blue.
-val MonthSurface2 = Color(0xFFF1F4F7)
-val MonthOnSurface2 = Color(0xFF4B5055)
+val MonthSurface2 = Color(0xFFF0F5FF)
+val MonthOnSurface2 = Color(0xFF4A5059)
 
-// Month Color 3: A hint of very light green/teal.
-val MonthSurface3 = Color(0xFFEFF6F5)
-val MonthOnSurface3 = Color(0xFF495251)
+val MonthSurface3 = Color(0xFFF0F9F4)
+val MonthOnSurface3 = Color(0xFF49544F)
 
 // Dark Theme Colors
-// Month Color 1: A deep, warm gray-brown.
-val MonthSurface1Dark = Color(0xFF3D3A36)
-val MonthOnSurface1Dark = Color(0xFFD2CEC8)
+val MonthSurface1Dark = Color(0xFF4A3C39)
+val MonthOnSurface1Dark = Color(0xFFE8DEDC)
 
-// Month Color 2: A deep, cool blue-gray.
-val MonthSurface2Dark = Color(0xFF383C40)
-val MonthOnSurface2Dark = Color(0xFFCDD0D3)
+val MonthSurface2Dark = Color(0xFF383E48)
+val MonthOnSurface2Dark = Color(0xFFD0D5DE)
 
-// Month Color 3: A deep, dark teal-gray.
-val MonthSurface3Dark = Color(0xFF353D3C)
-val MonthOnSurface3Dark = Color(0xFFC9D1D0)
+val MonthSurface3Dark = Color(0xFF37423D)
+val MonthOnSurface3Dark = Color(0xFFD0D9D5)
