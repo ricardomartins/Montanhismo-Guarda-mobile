@@ -2,11 +2,9 @@ package pt.rikmartins.clubemg.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,22 +29,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.Month
-import kotlinx.datetime.minus
 import kotlinx.datetime.toJavaLocalDate
-import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
@@ -65,13 +54,6 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
     val weeks = model.weeksOfEvents
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-
-    LaunchedEffect(weeks) {
-        if (weeks.isNotEmpty() && today != null) {
-            val todayWeekIndex = weeks.indexOfFirst { today in it.range }
-            if (todayWeekIndex >= 0) listState.scrollToItem(todayWeekIndex)
-        }
-    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -92,7 +74,7 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
                 .padding(paddingValues),
             state = listState,
         ) {
-            items(weeks, key = { it.range.start.toEpochDays() }) { weekOfEvents ->
+            items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
                 Week(weekOfEvents, today)
                 HorizontalDivider(thickness = Dp.Hairline)
             }
@@ -103,118 +85,79 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
 private const val WEEKDAYS_GUIDELINE = 1f / 6f
 private const val SUNDAY_GUIDELINE = (1f - WEEKDAYS_GUIDELINE) / 2f
 
+private const val WEEKDAYS_WEIGHT = 2f
+private const val WEEKEND_DAY_WEIGHT = 5f
+private const val WEEK_TOTAL_WEIGHT = WEEKDAYS_WEIGHT + WEEKEND_DAY_WEIGHT + WEEKEND_DAY_WEIGHT
+
 @Composable
 private fun Week(
     weekOfEvents: CalendarViewModel.WeekOfEvents,
     today: LocalDate?,
-    modifier: Modifier = Modifier
-) = ConstraintLayout(
-    modifier = modifier
+) = Column(
+    modifier = Modifier
         .fillMaxWidth()
         .wrapContentHeight()
 ) {
-    val dateRange = weekOfEvents.range
-    val monday = dateRange.start
-    val sunday = dateRange.endInclusive
-    val saturday = dateRange.first { it.dayOfWeek == DayOfWeek.SATURDAY }
+    val monday = weekOfEvents.monday
+    val saturday = monday.thisWeeksSaturday()
+    val sunday = monday.thisWeeksSunday()
 
-    val weekdaysGuideline = createGuidelineFromStart(WEEKDAYS_GUIDELINE)
-    val sundayGuideline = createGuidelineFromEnd(SUNDAY_GUIDELINE)
+    if (sunday.day <= 7) MonthLabelRow(monday, sunday)
 
-    val (previousMonthSpace, monthText, weekdayCluster, saturdayText, sundayText) = createRefs()
+    Row(modifier = Modifier.height(160.dp)) {
+        DayCluster(monday, today = today, modifier = Modifier.weight(WEEKDAYS_WEIGHT))
+        DayBox(
+            localDate = saturday,
+            today = today,
+            modifier = Modifier
+                .weight(WEEKEND_DAY_WEIGHT)
+                .fillMaxHeight()
+        )
+        DayBox(
+            localDate = sunday,
+            today = today,
+            modifier = Modifier
+                .weight(WEEKEND_DAY_WEIGHT)
+                .fillMaxHeight()
+        )
+    }
+}
 
-    val (previousMonthSurface, _) =
-        LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(monday)
-    val (currentMonthSurface, _) =
-        LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(sunday)
+@Composable
+private fun MonthLabelRow(monday: LocalDate, sunday: LocalDate) {
+    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+        val (previousMonthSurface, _) =
+            LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(monday)
+        val (currentMonthSurface, _) =
+            LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(sunday)
 
-    Text(
-        text = sunday.toJavaLocalDate().format(
+        val monthLabelWeight = when (sunday.day) {
+            1 -> WEEKEND_DAY_WEIGHT
+            2, 3, 4, 5, 6 -> WEEKEND_DAY_WEIGHT * 2f
+            else -> WEEK_TOTAL_WEIGHT
+        }
+
+        if (monthLabelWeight != WEEK_TOTAL_WEIGHT) Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .weight(WEEK_TOTAL_WEIGHT - monthLabelWeight)
+                .background(previousMonthSurface)
+        )
+
+        Text(
+            text = sunday.toJavaLocalDate().format(
                 DateTimeFormatter.ofPattern(
                     if (sunday.month == Month.JANUARY) "MMMM y" else "MMMM"
                 )
             ),
-        modifier = Modifier
-            .constrainAs(monthText) {
-                start.linkTo(
-                    when (sunday.day) {
-                        1 -> sundayGuideline
-                        2, 3, 4, 5, 6 -> weekdaysGuideline
-                        7 -> parent.start
-                        else -> parent.end
-                    }
-                )
-                top.linkTo(parent.top)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
-            }
-            .run { if (dateRange.any { it.day == 1 }) this else height(0.dp) }
-            .background(currentMonthSurface),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodySmall,
-    )
-
-    Box(
-        Modifier
-            .constrainAs(previousMonthSpace) {
-                linkTo(parent.start, parent.top, monthText.start, monthText.bottom)
-                width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
-            }
-            .background(previousMonthSurface)
-    )
-
-    DayCluster(
-        LocalDateRange(
-            monday,
-            sunday.minus(2, DateTimeUnit.DAY)
-        ),
-        today = today,
-        modifier = Modifier
-            .constrainAs(weekdayCluster) {
-                linkTo(
-                    start = parent.start,
-                    top = monthText.bottom,
-                    end = weekdaysGuideline,
-                    bottom = parent.bottom
-                )
-                width = Dimension.fillToConstraints
-            }
-            .height(160.dp)
-    )
-
-    DayBox(
-        localDate = saturday,
-        today = today,
-        modifier = Modifier
-            .constrainAs(saturdayText) {
-                linkTo(
-                    start = weekdaysGuideline,
-                    top = monthText.bottom,
-                    end = sundayGuideline,
-                    bottom = parent.bottom
-                )
-                width = Dimension.fillToConstraints
-            }
-            .height(160.dp)
-    )
-
-    DayBox(
-        localDate = sunday,
-        today = today,
-        modifier = Modifier
-            .constrainAs(sundayText) {
-                linkTo(
-                    start = sundayGuideline,
-                    top = monthText.bottom,
-                    end = parent.end,
-                    bottom = parent.bottom
-                )
-                width = Dimension.fillToConstraints
-            }
-            .height(160.dp)
-    )
+            modifier = Modifier
+                .weight(monthLabelWeight)
+                .background(currentMonthSurface),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
 }
 
 @Composable
@@ -288,13 +231,13 @@ private fun CustomColorsPalette.getSurfaceAndOnSurfaceOfDate(
 
 @Composable
 private fun DayCluster(
-    dates: LocalDateRange,
+    monday: LocalDate,
     today: LocalDate?,
     modifier: Modifier = Modifier,
     columnCount: Int = 2, // TODO: Remove
 ) {
     Column(modifier) {
-        val iterator = dates.iterator()
+        val iterator = (monday..monday.thisWeeksFriday()).iterator()
 
         if (iterator.hasNext()) DayBox(
             localDate = iterator.next(),
@@ -330,40 +273,8 @@ private fun DayCluster(
 @Composable
 private fun WeekPreview() = Week(
     weekOfEvents = CalendarViewModel.WeekOfEvents(
-        range = LocalDateRange(
-            start = LocalDate(2025, 9, 1),
-            endInclusive = LocalDate(2025, 9, 7)
-        ),
+        monday = LocalDate(2025, 9, 1),
         events = emptyList(),
     ),
     today = LocalDate(2025, 9, 6),
 )
-
-@Composable
-private fun ObjectFrame(
-    obj: MuseumObject,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier
-            .padding(8.dp)
-            .clickable { onClick() }
-    ) {
-        AsyncImage(
-            model = obj.primaryImageSmall,
-            contentDescription = obj.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .background(Color.LightGray),
-        )
-
-        Spacer(Modifier.height(2.dp))
-
-        Text(obj.title, style = MaterialTheme.typography.titleMedium)
-        Text(obj.artistDisplayName, style = MaterialTheme.typography.bodyMedium)
-        Text(obj.objectDate, style = MaterialTheme.typography.bodySmall)
-    }
-}

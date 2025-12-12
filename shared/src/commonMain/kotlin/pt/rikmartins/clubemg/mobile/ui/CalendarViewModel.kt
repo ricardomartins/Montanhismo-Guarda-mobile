@@ -14,7 +14,6 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
-import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
@@ -41,62 +40,55 @@ class CalendarViewModel(
         .combine(timeZoneSupplier()) { today, timeZone -> today.toLocalDateTime(timeZone).date }
 
     private val weeksOfEvents = eventsSupplier().combine(timeZoneSupplier()) { events, timeZone ->
-        events.fold(mutableMapOf<LocalDateRange, MutableList<CalendarEvent>>()) { acc, calendarEvent ->
+        events.fold(mutableMapOf<LocalDate, MutableList<CalendarEvent>>()) { acc, calendarEvent ->
             acc.apply {
-                calendarEvent.toWeeks(timeZone).forEach { week ->
-                    getOrPut(week) { mutableListOf() }.add(calendarEvent)
+                calendarEvent.toWeeks(timeZone).forEach { monday ->
+                    getOrPut(monday) { mutableListOf() }.add(calendarEvent)
                 }
             }
         }
-            .map { (range, events) -> WeekOfEvents(range, events) }
+            .map { (monday, events) -> WeekOfEvents(monday, events) }
             .sortAndPad(timeZone)
     }
 
-    private fun CalendarEvent.toWeeks(timeZone: TimeZone): List<LocalDateRange> = buildList {
+    private fun CalendarEvent.toWeeks(timeZone: TimeZone): List<LocalDate> = buildList {
         val startDate = startDate.toLocalDateTime(timeZone).date
         val endDate = endDate.toLocalDateTime(timeZone).date
         val daysFromMonday = startDate.dayOfWeek.ordinal - DayOfWeek.MONDAY.ordinal
-        var currentStartOfWeek = startDate.minus(daysFromMonday, DateTimeUnit.DAY)
+        var currentMonday = startDate.minus(daysFromMonday, DateTimeUnit.DAY)
 
-        while (currentStartOfWeek <= endDate) {
-            val currentEndOfWeek = currentStartOfWeek.plus(6, DateTimeUnit.DAY)
-            add(LocalDateRange(currentStartOfWeek, currentEndOfWeek))
-            currentStartOfWeek = currentStartOfWeek.plus(1, DateTimeUnit.WEEK)
+        while (currentMonday <= endDate) {
+            add(currentMonday)
+            currentMonday = currentMonday.plus(1, DateTimeUnit.WEEK)
         }
     }
 
     private fun List<WeekOfEvents>.sortAndPad(
         timeZone: TimeZone,
         padSize: DatePeriod = DatePeriod(months = 6)
-    ): List<WeekOfEvents> = sortedBy { it.range.first }.run {
+    ): List<WeekOfEvents> = sortedBy { it.monday }.run {
         val today = Clock.System.todayIn(timeZone)
-        val firstEventDate = firstOrNull()?.range?.first
-        val lastEventDate = lastOrNull()?.range?.last
+        val firstEventDate = firstOrNull()?.monday
+        val lastEventDate = lastOrNull()?.monday?.plus(6, DateTimeUnit.DAY)
 
         val startDate = (firstEventDate?.let { minOf(today, it) } ?: today).minus(padSize)
         val endDate = (lastEventDate?.let { maxOf(today, it) } ?: today).plus(padSize)
 
-        var currentStartOfWeek = startDate.minus(startDate.dayOfWeek.ordinal, DateTimeUnit.DAY)
+        var currentMonday = startDate.minus(startDate.dayOfWeek.ordinal, DateTimeUnit.DAY)
 
         val iterator = iterator()
         var nextExistingWeek = iterator.takeIf { it.hasNext() }?.next()
 
         buildList {
-            while (currentStartOfWeek <= endDate) {
+            while (currentMonday <= endDate) {
                 val nextExistingWeekValue = nextExistingWeek
-                if (currentStartOfWeek == nextExistingWeekValue?.range?.first) {
+                if (currentMonday == nextExistingWeekValue?.monday) {
                     add(nextExistingWeekValue)
                     nextExistingWeek = iterator.takeIf { it.hasNext() }?.next()
                 } else {
-                    val currentEndOfWeek = currentStartOfWeek.plus(6, DateTimeUnit.DAY)
-                    add(
-                        WeekOfEvents(
-                            LocalDateRange(currentStartOfWeek, currentEndOfWeek),
-                            emptyList()
-                        )
-                    )
+                    add(WeekOfEvents(currentMonday, emptyList()))
                 }
-                currentStartOfWeek = currentStartOfWeek.plus(1, DateTimeUnit.WEEK)
+                currentMonday = currentMonday.plus(1, DateTimeUnit.WEEK)
             }
         }
     }
@@ -113,7 +105,7 @@ class CalendarViewModel(
     }
 
     data class WeekOfEvents(
-        val range: LocalDateRange,
+        val monday: LocalDate,
         val events: List<CalendarEvent>,
     )
 
