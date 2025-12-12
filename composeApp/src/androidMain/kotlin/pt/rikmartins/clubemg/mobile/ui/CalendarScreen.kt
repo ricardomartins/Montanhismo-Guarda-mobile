@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,10 +45,13 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.minus
+import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,88 +109,108 @@ private fun Week(
     modifier: Modifier = Modifier
 ) = ConstraintLayout(
     modifier = modifier
-        .height(160.dp)
         .fillMaxWidth()
+        .wrapContentHeight()
 ) {
+    val dateRange = weekOfEvents.range
+    val monday = dateRange.start
+    val sunday = dateRange.endInclusive
+    val saturday = dateRange.first { it.dayOfWeek == DayOfWeek.SATURDAY }
+
     val weekdaysGuideline = createGuidelineFromStart(WEEKDAYS_GUIDELINE)
     val sundayGuideline = createGuidelineFromEnd(SUNDAY_GUIDELINE)
 
-    val (weekdayCluster, saturdayText, sundayText, weekdaysDivider, sundayDivider) = createRefs()
+    val (previousMonthSpace, monthText, weekdayCluster, saturdayText, sundayText) = createRefs()
 
-    val isPast = today?.let { weekOfEvents.range.endInclusive < today } ?: false
+    val (previousMonthSurface, _) =
+        LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(monday)
+    val (currentMonthSurface, _) =
+        LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(sunday)
 
-    DayCluster(
-        LocalDateRange(
-            weekOfEvents.range.start,
-            weekOfEvents.range.endInclusive.minus(2, DateTimeUnit.DAY)
-        ),
-        today = today,
-        isPast = isPast,
+    Text(
+        text = sunday.toJavaLocalDate()
+            .format(DateTimeFormatter.ofPattern("MMMM")),
         modifier = Modifier
-            .constrainAs(weekdayCluster) {
-                linkTo(parent.start, parent.top, weekdaysGuideline, parent.bottom)
+            .constrainAs(monthText) {
+                start.linkTo(
+                    when (sunday.day) {
+                        1 -> sundayGuideline
+                        2, 3, 4, 5, 6 -> weekdaysGuideline
+                        7 -> parent.start
+                        else -> parent.end
+                    }
+                )
+                top.linkTo(parent.top)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }
+            .run { if (dateRange.any { it.day == 1 }) this else height(0.dp) }
+            .background(currentMonthSurface),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodySmall,
+    )
+
+    Box(
+        Modifier
+            .constrainAs(previousMonthSpace) {
+                linkTo(parent.start, parent.top, monthText.start, monthText.bottom)
                 width = Dimension.fillToConstraints
                 height = Dimension.fillToConstraints
             }
+            .background(previousMonthSurface)
     )
 
-    val saturday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SATURDAY }
-    val sunday = weekOfEvents.range.first { it.dayOfWeek == DayOfWeek.SUNDAY }
+    DayCluster(
+        LocalDateRange(
+            monday,
+            sunday.minus(2, DateTimeUnit.DAY)
+        ),
+        today = today,
+        modifier = Modifier
+            .constrainAs(weekdayCluster) {
+                linkTo(
+                    start = parent.start,
+                    top = monthText.bottom,
+                    end = weekdaysGuideline,
+                    bottom = parent.bottom
+                )
+                width = Dimension.fillToConstraints
+            }
+            .height(160.dp)
+    )
 
     DayBox(
         localDate = saturday,
         today = today,
-        isPast = isPast,
         modifier = Modifier
             .constrainAs(saturdayText) {
-                linkTo(weekdaysGuideline, parent.top, sundayGuideline, parent.bottom)
+                linkTo(
+                    start = weekdaysGuideline,
+                    top = monthText.bottom,
+                    end = sundayGuideline,
+                    bottom = parent.bottom
+                )
                 width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
             }
+            .height(160.dp)
     )
 
     DayBox(
         localDate = sunday,
         today = today,
-        isPast = isPast,
         modifier = Modifier
             .constrainAs(sundayText) {
-                linkTo(sundayGuideline, parent.top, parent.end, parent.bottom)
+                linkTo(
+                    start = sundayGuideline,
+                    top = monthText.bottom,
+                    end = parent.end,
+                    bottom = parent.bottom
+                )
                 width = Dimension.fillToConstraints
-                height = Dimension.fillToConstraints
             }
+            .height(160.dp)
     )
-
-    // TODO: Test this further or delete. It didn't look good in the first versions.
-//    VerticalDivider(
-//        thickness = Dp.Hairline,
-//        modifier = Modifier
-//            .constrainAs(weekdaysDivider) {
-//                linkTo(
-//                    start = weekdaysGuideline,
-//                    top = parent.top,
-//                    end = weekdaysGuideline,
-//                    bottom = parent.bottom
-//                )
-//                height = Dimension.fillToConstraints
-//            }
-//            .padding(vertical = 16.dp),
-//    )
-
-//    VerticalDivider(
-//        thickness = Dp.Hairline,
-//        modifier = Modifier
-//            .constrainAs(sundayDivider) {
-//                linkTo(
-//                    start = sundayGuideline,
-//                    top = parent.top,
-//                    end = sundayGuideline,
-//                    bottom = parent.bottom
-//                )
-//                height = Dimension.fillToConstraints
-//            }
-//            .padding(vertical = 16.dp),
-//    )
 }
 
 @Composable
@@ -235,37 +260,9 @@ private fun DayLabel(localDate: LocalDate, today: LocalDate?, color: Color = Col
     }
 
 @Composable
-private fun DayBox(
-    localDate: LocalDate,
-    today: LocalDate?,
-    isPast: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val monthColorSet = localDate.month.ordinal % 3
-
-    val surfaceColor: Color
-    val onSurfaceColor: Color
-    when {
-        isPast -> {
-            surfaceColor = Color.Unspecified
-            onSurfaceColor = Color.Unspecified
-        }
-
-        monthColorSet == 0 -> {
-            surfaceColor = LocalCustomColorsPalette.current.monthSurface1
-            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface1
-        }
-
-        monthColorSet == 1 -> {
-            surfaceColor = LocalCustomColorsPalette.current.monthSurface2
-            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface2
-        }
-
-        else -> {
-            surfaceColor = LocalCustomColorsPalette.current.monthSurface3
-            onSurfaceColor = LocalCustomColorsPalette.current.monthOnSurface3
-        }
-    }
+private fun DayBox(localDate: LocalDate, today: LocalDate?, modifier: Modifier = Modifier) {
+    val (surfaceColor, onSurfaceColor) =
+        LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(localDate)
 
     Box(
         contentAlignment = Alignment.TopCenter,
@@ -273,11 +270,22 @@ private fun DayBox(
     ) { DayLabel(localDate, today, color = onSurfaceColor) }
 }
 
+private fun CustomColorsPalette.getSurfaceAndOnSurfaceOfDate(
+    localDate: LocalDate,
+): Pair<Color, Color> {
+    val monthColorSet = localDate.month.ordinal % 3
+
+    return when (monthColorSet) {
+        0 -> monthSurface1 to monthOnSurface1
+        1 -> monthSurface2 to monthOnSurface2
+        else -> monthSurface3 to monthOnSurface3
+    }
+}
+
 @Composable
 private fun DayCluster(
     dates: LocalDateRange,
     today: LocalDate?,
-    isPast: Boolean,
     modifier: Modifier = Modifier,
     columnCount: Int = 2, // TODO: Remove
 ) {
@@ -287,7 +295,6 @@ private fun DayCluster(
         if (iterator.hasNext()) DayBox(
             localDate = iterator.next(),
             today = today,
-            isPast = isPast,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
@@ -304,7 +311,6 @@ private fun DayCluster(
                     DayBox(
                         localDate = iterator.next(),
                         today = today,
-                        isPast = isPast,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
