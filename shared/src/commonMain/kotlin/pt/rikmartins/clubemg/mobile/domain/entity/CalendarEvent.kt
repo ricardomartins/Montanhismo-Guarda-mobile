@@ -1,6 +1,5 @@
 package pt.rikmartins.clubemg.mobile.domain.entity
 
-import kotlinx.datetime.TimeZone
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -15,4 +14,13 @@ interface CalendarEvent {
     val allDay: Boolean
     val startDate: Instant
     val endDate: Instant
+    val images: List<EventImage>
+}
+
+interface EventImage {
+    val id: String?
+    val url: String
+    val width: Int
+    val height: Int
+    val fileSize: Int
 }

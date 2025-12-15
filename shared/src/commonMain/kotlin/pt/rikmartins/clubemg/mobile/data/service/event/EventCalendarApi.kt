@@ -24,8 +24,18 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonObject
+import pt.rikmartins.clubemg.mobile.domain.entity.EventImage
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -81,6 +91,12 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
                 allDay = event.allDay,
                 startDate = event.startDate.asLocalDateTime().toInstant(timezone),
                 endDate = event.endDate.asLocalDateTime().toInstant(timezone),
+                images = event.image?.run {
+                    buildList {
+                        add(this@run.asEventImage(null))
+                        sizes.forEach { (key, value) -> add(value.asEventImage(key)) }
+                    }
+                }.orEmpty()
             )
         }
     }
@@ -116,6 +132,7 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         override val allDay: Boolean,
         override val startDate: Instant,
         override val endDate: Instant,
+        override val images: List<ApiEventImage>,
     ) : CalendarEvent
 
     @Serializable
@@ -174,6 +191,13 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         @Resource("{id}")
         data class Id(val parent: TagsResource = TagsResource(), val id: Int)
     }
+    private data class ApiEventImage(
+        override val id: String?,
+        override val url: String,
+        override val width: Int,
+        override val height: Int,
+        override val fileSize: Int,
+    ): EventImage
 
     @Serializable
     private data class EventItem(
@@ -188,7 +212,34 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         @SerialName("end_date") val endDate: String, // The event end date in the event or site time zone
         val timezone: String, // The event time zone string
         val website: String, // The cost details of the event
+        @Serializable(with = ImageStructureItemBooleanSerializer::class)
+        val image: ImageStructureItem?,
     )
+
+    private interface ImageStructure {
+        val width: Int // The image width
+        val height: Int // The image height
+        val fileSize: Int // The image size in bytes
+        val url: String // The image URL
+    }
+
+    @Serializable
+    private data class ImageStructureItem(
+        val id: Int, // The image ID
+        override val url: String, // The image URL
+        override val width: Int, // The image width
+        override val height: Int, // The image height
+        @SerialName("filesize") override val fileSize: Int, // The image size in bytes
+        val sizes: Map<String, ImageSizeItem>
+    ) : ImageStructure
+
+    @Serializable
+    private data class ImageSizeItem(
+        override val width: Int,
+        override val height: Int,
+        @SerialName("filesize") override val fileSize: Int,
+        override val url: String
+    ): ImageStructure
 
     @Serializable
     private data class EventResponse(
@@ -199,12 +250,33 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         @SerialName("next_rest_url") val nextRestUrl: String? = null,
         @SerialName("previous_rest_url") val previousRestUrl: String? = null,
     )
-}
 
-enum class EventStatus(val value: String) {
-    PUBLISH("publish"),
-    DRAFT("draft"),
-    PENDING("pending"),
-    PRIVATE("private"),
-    TRASH("trash")
+    private fun ImageStructure.asEventImage(id: String?): ApiEventImage = ApiEventImage(
+        id = id,
+        url = url,
+        width = width,
+        height = height,
+        fileSize = fileSize,
+    )
+
+    private class ImageStructureItemBooleanSerializer : KSerializer<ImageStructureItem?> {
+        private val delegateSerializer = ImageStructureItem.serializer()
+        override val descriptor: SerialDescriptor = delegateSerializer.descriptor
+
+        override fun serialize(encoder: Encoder, value: ImageStructureItem?) {
+            value?.also { encoder.encodeSerializableValue(delegateSerializer, value) }
+                ?: encoder.encodeBoolean(false)
+        }
+
+        override fun deserialize(decoder: Decoder): ImageStructureItem? {
+            val jsonInput = (decoder as? JsonDecoder)?.decodeJsonElement()
+                ?: throw IllegalStateException("This serializer can only be used with JSON")
+
+            if (jsonInput is JsonNull || (jsonInput is JsonPrimitive && jsonInput.booleanOrNull == false)) {
+                return null
+            }
+
+            return decoder.json.decodeFromJsonElement(delegateSerializer, jsonInput.jsonObject)
+        }
+    }
 }
