@@ -1,5 +1,6 @@
 package pt.rikmartins.clubemg.mobile.data.service.event
 
+import com.fleeksoft.ksoup.Ksoup
 import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
 import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
 import io.ktor.client.HttpClient
@@ -86,7 +87,7 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
                 creationDate = event.date.asLocalDateTime().toInstant(timezone),
                 modifiedDate = event.modified.asLocalDateTime().toInstant(timezone),
                 url = event.url,
-                title = event.title,
+                title = Ksoup.clean(event.title),
                 description = event.description,
                 allDay = event.allDay,
                 startDate = event.startDate.asLocalDateTime().toInstant(timezone),

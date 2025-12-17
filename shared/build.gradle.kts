@@ -42,6 +42,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.kermit)
+            implementation(libs.ksoup)
             implementation(libs.koin.core)
             implementation(libs.kotlinx.datetime)
             api(libs.kmp.observable.viewmodel)
