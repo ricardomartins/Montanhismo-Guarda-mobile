@@ -106,10 +106,8 @@ private fun Week(
     today: LocalDate?,
 ) = Box(contentAlignment = Alignment.BottomCenter) {
     var dayLabelSize by remember { mutableStateOf(IntSize.Zero) }
-
     val density = LocalDensity.current
-
-    val eventHeight = WEEK_HEIGHT_IN_DP - (dayLabelSize.height / density.density).dp
+    val eventsHeight = remember(dayLabelSize) { WEEK_HEIGHT_IN_DP - (dayLabelSize.height / density.density).dp }
 
     Column(
         modifier = Modifier
@@ -131,7 +129,7 @@ private fun Week(
             modifier = Modifier.height(WEEK_HEIGHT_IN_DP)
         )
     }
-    if (weekOfEvents.events.isNotEmpty()) EventsOnWeek(weekOfEvents, modifier = Modifier.height(eventHeight))
+    if (weekOfEvents.events.isNotEmpty()) EventsOnWeek(weekOfEvents, modifier = Modifier.height(eventsHeight))
 }
 
 @Composable
