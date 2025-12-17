@@ -13,17 +13,20 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.minus
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.entity.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDateRequester
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.TimeZoneSupplier
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class CalendarViewModel(
@@ -39,25 +42,26 @@ class CalendarViewModel(
     }
         .combine(timeZoneSupplier()) { today, timeZone -> today.toLocalDateTime(timeZone).date }
 
-    private val weeksOfEvents = eventsSupplier().combine(timeZoneSupplier()) { events, timeZone ->
-        events.fold(mutableMapOf<LocalDate, MutableList<CalendarEvent>>()) { acc, calendarEvent ->
-            acc.apply {
-                calendarEvent.toWeeks(timeZone).forEach { monday ->
-                    getOrPut(monday) { mutableListOf() }.add(calendarEvent)
+    private val weeksOfEvents = eventsSupplier()
+        .combine(timeZoneSupplier()) { calendarEvents, timeZone ->
+            calendarEvents.map { calendarEvent -> SimplifiedEvent(calendarEvent, timeZone) }
+                .fold(mutableMapOf<LocalDate, MutableList<SimplifiedEvent>>()) { acc, simplifiedEvent ->
+                    acc.apply {
+                        simplifiedEvent.toWeeks().forEach { monday ->
+                            getOrPut(monday) { mutableListOf() }.add(simplifiedEvent)
+                        }
+                    }
                 }
-            }
+                .map { (monday, events) -> WeekOfEvents(monday, events) }
+                .sortAndPad(timeZone)
         }
-            .map { (monday, events) -> WeekOfEvents(monday, events) }
-            .sortAndPad(timeZone)
-    }
 
-    private fun CalendarEvent.toWeeks(timeZone: TimeZone): List<LocalDate> = buildList {
-        val startDate = startDate.toLocalDateTime(timeZone).date
-        val endDate = endDate.toLocalDateTime(timeZone).date
+    private fun SimplifiedEvent.toWeeks(): List<LocalDate> = buildList {
+        val startDate = range.start
         val daysFromMonday = startDate.dayOfWeek.ordinal - DayOfWeek.MONDAY.ordinal
         var currentMonday = startDate.minus(daysFromMonday, DateTimeUnit.DAY)
 
-        while (currentMonday <= endDate) {
+        while (currentMonday <= range.endInclusive) {
             add(currentMonday)
             currentMonday = currentMonday.plus(1, DateTimeUnit.WEEK)
         }
@@ -106,8 +110,31 @@ class CalendarViewModel(
 
     data class WeekOfEvents(
         val monday: LocalDate,
-        val events: List<CalendarEvent>,
+        val events: List<SimplifiedEvent>,
     )
+
+    class SimplifiedEvent(
+        private val calendarEvent: CalendarEvent,
+        private val timeZone: TimeZone,
+    ) {
+        val id: String
+            get() = calendarEvent.id
+        val title: String
+            get() = calendarEvent.title
+        val url: String
+            get() = calendarEvent.url
+        val description: String
+            get() = calendarEvent.description
+        val range: LocalDateRange by lazy {
+            with(calendarEvent) {
+                startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
+            }
+        }
+        val sortedImages: List<EventImage> by lazy { calendarEvent.images.sortedBy { it.fileSize } }
+
+        private fun Instant.toLocalDate(timeZone: TimeZone): LocalDate =
+            toLocalDateTime(timeZone).date
+    }
 
     data class Model(
         val weeksOfEvents: List<WeekOfEvents>,
