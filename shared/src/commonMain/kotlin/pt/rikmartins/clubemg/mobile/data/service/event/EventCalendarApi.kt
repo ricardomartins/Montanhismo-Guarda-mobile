@@ -2,22 +2,25 @@ package pt.rikmartins.clubemg.mobile.data.service.event
 
 import com.fleeksoft.ksoup.Ksoup
 import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
-import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.resources.Resource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -36,7 +39,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
-import pt.rikmartins.clubemg.mobile.domain.entity.EventImage
+import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -45,10 +48,13 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
 
     private var _timezone = MutableStateFlow(DEFAULT_API_TIMEZONE)
 
-    override val timezone: Flow<TimeZone> = _timezone.distinctUntilChangedBy { it }
-        .map { runCatching { TimeZone.of(it) } }
-        .filter { it.isSuccess }
-        .map { it.getOrThrow() }
+    override val timezone: StateFlow<TimeZone> = _timezone.distinctUntilChangedBy { it }
+        .mapNotNull { runCatching { TimeZone.of(it) }.getOrNull() }
+        .stateIn(
+            scope = CoroutineScope(SupervisorJob()),
+            started = SharingStarted.Lazily,
+            initialValue = TimeZone.of(DEFAULT_API_TIMEZONE)
+        )
 
     override suspend fun getEvents(
         startDate: Instant,

@@ -6,8 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 class AccessSupplier(private val eventRepository: EventRepository) : WatchCase.Supplier<Boolean>() {
-    override fun get(): Flow<Boolean> =
-        combine(eventRepository.localAccess, eventRepository.remoteAccess) { local, remote ->
-            local || remote
-        }
+
+    override fun execute(): Flow<Boolean> =
+        combine(eventRepository.localAccess, eventRepository.remoteAccess) { local, remote -> local || remote }
 }

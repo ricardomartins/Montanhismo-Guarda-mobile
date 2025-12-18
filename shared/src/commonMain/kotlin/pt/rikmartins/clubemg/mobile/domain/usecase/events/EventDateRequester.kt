@@ -6,6 +6,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.base.UseCase
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
-class EventDateRequester(private val eventRepository: EventRepository): UseCase.Consumer<LocalDate>() {
-    override suspend fun accept(request: LocalDate) = eventRepository.requestDate(date = request)
+class EventDateRequester(private val eventRepository: EventRepository): UseCase<LocalDate, Unit>() {
+
+    override suspend fun execute(params: LocalDate): Unit = eventRepository.requestDate(date = params)
 }

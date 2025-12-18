@@ -1,89 +1,39 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.base
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 
 /**
  * Base class for a UseCase that returns a [Flow] for observing data changes.
  *
- * @param RQ1 The type of the first request.
- * @param RQ2 The type of the second request.
- * @param RSP The type of the response flow's emissions.
+ * @param R The type of the response flow's emissions.
  */
-sealed class WatchCase<in RQ1, in RQ2, out RSP> {
+sealed class WatchCase<out R>(
+    protected val dispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
+    abstract class Supplier<out R>(dispatcher: CoroutineDispatcher = Dispatchers.IO) : WatchCase<R>(dispatcher) {
 
-    @Throws(Throwable::class)
-    abstract fun execute(request1: RQ1, request2: RQ2): Flow<RSP>
+        protected abstract fun execute(): Flow<R>
 
-    @Throws(Throwable::class)
-    operator fun <RQ1_DT, RQ2_DT, RSP_DT> invoke(
-        firstRequestDto: RQ1_DT,
-        secondRequestDto: RQ2_DT,
-        firstRequestConverter: (RQ1_DT) -> RQ1,
-        secondRequestConverter: (RQ2_DT) -> RQ2,
-        responseConverter: (RSP) -> RSP_DT
-    ): Flow<RSP_DT> {
-        val request1 = firstRequestConverter(firstRequestDto)
-        val request2 = secondRequestConverter(secondRequestDto)
-        return execute(request1, request2).map { responseConverter(it) }
+        operator fun invoke(): Flow<R> = execute().flowOn(dispatcher)
     }
 
-    /**
-     * An operation that supplies a flow of values without any input.
-     * Renamed from FlowSupplier for consistency.
-     */
-    abstract class Supplier<out RSP> : WatchCase<NoRequest, NoRequest, RSP>() {
+    abstract class Function<in P, out R>(dispatcher: CoroutineDispatcher = Dispatchers.IO) : WatchCase<R>(dispatcher) {
+        protected abstract fun execute(param: P): Flow<R>
 
-        @Throws(Throwable::class)
-        abstract fun get(): Flow<RSP>
-
-        final override fun execute(request1: NoRequest, request2: NoRequest): Flow<RSP> = get()
-
-        @Throws(Throwable::class)
-        operator fun invoke(): Flow<RSP> =
-            super.invoke(Unit, Unit, ::itFun, ::itFun, ::itFun)
-
-        @Throws(Throwable::class)
-        operator fun <RSP_DT> invoke(responseConverter: (RSP) -> RSP_DT): Flow<RSP_DT> =
-            super.invoke(Unit, Unit, ::itFun, ::itFun, responseConverter)
+        operator fun invoke(param: P): Flow<R> = execute(param).flowOn(dispatcher)
     }
 
-    /**
-     * A function that takes one input and returns a flow of values.
-     * Renamed from FlowFunction for consistency.
-     */
-    abstract class Function<in RQ, out RSP> : WatchCase<RQ, NoRequest, RSP>() {
+    abstract class BiFunction<in P1, in P2, out R>(
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ) : WatchCase<R>(dispatcher) {
 
-        @Throws(Throwable::class)
-        abstract fun call(request: RQ): Flow<RSP>
+        protected abstract fun execute(param1: P1, param2: P2): Flow<R>
 
-        final override fun execute(request1: RQ, request2: NoRequest): Flow<RSP> = call(request1)
-
-        @Throws(Throwable::class)
-        operator fun invoke(request: RQ): Flow<RSP> =
-            super.invoke(request, Unit, ::itFun, ::itFun, ::itFun)
-
-        @Throws(Throwable::class)
-        operator fun <RQ_DT, RSP_DT> invoke(
-            requestDto: RQ_DT,
-            requestConverter: (RQ_DT) -> RQ,
-            responseConverter: (RSP) -> RSP_DT
-        ): Flow<RSP_DT> = super.invoke(requestDto, Unit, requestConverter, ::itFun, responseConverter)
-    }
-
-    /**
-     * A function that takes two inputs and returns a flow of values.
-     * Renamed from FlowBiFunction for consistency.
-     */
-    abstract class BiFunction<in RQ1, in RQ2, out RSP> : WatchCase<RQ1, RQ2, RSP>() {
-
-        @Throws(Throwable::class)
-        abstract fun call(request1: RQ1, request2: RQ2): Flow<RSP>
-
-        final override fun execute(request1: RQ1, request2: RQ2): Flow<RSP> = call(request1, request2)
-
-        @Throws(Throwable::class)
-        operator fun invoke(request1: RQ1, request2: RQ2): Flow<RSP> =
-            super.invoke(request1, request2, ::itFun, ::itFun, ::itFun)
+        operator fun invoke(param1: P1, param2: P2): Flow<R> = execute(param1, param2).flowOn(dispatcher)
     }
 }
+

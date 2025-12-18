@@ -5,6 +5,7 @@ import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 import kotlinx.datetime.TimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
 
-class TimeZoneSupplier(private val repository: EventRepository) : WatchCase.Supplier<TimeZone>() {
-    override fun get(): Flow<TimeZone> = repository.eventsTimezone
+class ObserveCalendarTimeZone(private val repository: EventRepository) : WatchCase.Supplier<TimeZone>() {
+
+    override fun execute(): Flow<TimeZone> = repository.eventsTimezone
 }

@@ -1,12 +1,11 @@
 package pt.rikmartins.clubemg.mobile.data
 
-import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,8 +29,6 @@ class EventRepositoryImpl(
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
 ) : EventRepository {
-    private val scope = CoroutineScope(SupervisorJob()) // FIXME
-
     override val localAccess by lazy { eventSource.isAccessing }
 
     override val remoteAccess by lazy { eventStorage.isAccessing }
@@ -184,7 +181,7 @@ class EventRepositoryImpl(
             merged.sortedBy { it.startDate }
         }
     }
-    override val eventsTimezone: Flow<TimeZone>
+    override val eventsTimezone: StateFlow<TimeZone>
         get() = eventSource.timezone
 
     override val providedStartDate by lazy {
@@ -214,15 +211,15 @@ class EventRepositoryImpl(
 
     interface EventSource {
         suspend fun getEvents(startDate: Instant, endDate: Instant): List<CalendarEvent>
-        val isAccessing: Flow<Boolean>
-        val timezone: Flow<TimeZone>
+        val isAccessing: StateFlow<Boolean>
+        val timezone: StateFlow<TimeZone>
     }
 
     interface EventStorage {
         fun getAllEvents(): Flow<List<CalendarEvent>> // Should not emit empty, unless there are no events
         suspend fun saveEvents(events: List<CalendarEvent>)
         suspend fun deleteEvents(events: List<CalendarEvent>)
-        val isAccessing: Flow<Boolean>
+        val isAccessing: StateFlow<Boolean>
     }
 
     private data class Change<T>(val previous: T? = null, val current: T? = null) {

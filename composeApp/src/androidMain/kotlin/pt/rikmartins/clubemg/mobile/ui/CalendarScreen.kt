@@ -38,6 +38,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +51,8 @@ import kotlinx.datetime.Month
 import kotlinx.datetime.toJavaLocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
+import pt.rikmartins.clubemg.mobile.domain.entity.WeekOfEvents
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
 import java.time.format.DateTimeFormatter
@@ -102,7 +105,7 @@ private val WEEK_HEIGHT_IN_DP = WEEK_HEIGHT.dp
 
 @Composable
 private fun Week(
-    weekOfEvents: CalendarViewModel.WeekOfEvents,
+    weekOfEvents: WeekOfEvents,
     today: LocalDate?,
 ) = Box(contentAlignment = Alignment.BottomCenter) {
     var dayLabelSize by remember { mutableStateOf(IntSize.Zero) }
@@ -339,21 +342,21 @@ interface EventRow {
     sealed interface ThatAccepts {
         interface StartSpan<TARGET : Span.Double> : ThatAccepts {
             fun addEventThatSpansWeekdays(
-                event: CalendarViewModel.SimplifiedEvent,
+                event: SimplifiedEvent,
                 fromPreviousWeek: Boolean,
             ): TARGET
 
             fun addEventThatSpansWeekdaysAndSaturday(
-                event: CalendarViewModel.SimplifiedEvent,
+                event: SimplifiedEvent,
                 fromPreviousWeek: Boolean,
             ): TARGET
 
-            fun addEventThatSpansSaturday(event: CalendarViewModel.SimplifiedEvent): TARGET
+            fun addEventThatSpansSaturday(event: SimplifiedEvent): TARGET
         }
 
         interface EndSpan<TARGET : Span.Double> : ThatAccepts {
             fun addEventThatSpansSunday(
-                event: CalendarViewModel.SimplifiedEvent,
+                event: SimplifiedEvent,
                 toNextWeek: Boolean
             ): TARGET
         }
@@ -361,15 +364,15 @@ interface EventRow {
 
     sealed interface Span : EventRow {
         sealed interface Single : Span {
-            val event: CalendarViewModel.SimplifiedEvent
+            val event: SimplifiedEvent
 
             data class Weekdays(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
                 val fromPreviousWeek: Boolean,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: CalendarViewModel.SimplifiedEvent,
+                    event: SimplifiedEvent,
                     toNextWeek: Boolean
                 ) = Double.WeekdaysPlusSunday(
                     startEvent = this.event,
@@ -380,12 +383,12 @@ interface EventRow {
             }
 
             data class WeekdaysAndSaturday(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
                 val fromPreviousWeek: Boolean,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: CalendarViewModel.SimplifiedEvent,
+                    event: SimplifiedEvent,
                     toNextWeek: Boolean
                 ) = Double.WeekdaysAndSaturdayPlusSunday(
                     startEvent = this.event,
@@ -396,17 +399,17 @@ interface EventRow {
             }
 
             data class WholeWeek(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
                 val fromPreviousWeek: Boolean,
                 val toNextWeek: Boolean,
             ) : Single
 
             data class Saturday(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: CalendarViewModel.SimplifiedEvent,
+                    event: SimplifiedEvent,
                     toNextWeek: Boolean
                 ) = Double.SaturdayPlusSunday(
                     startEvent = this.event,
@@ -416,17 +419,17 @@ interface EventRow {
             }
 
             data class Weekend(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
                 val toNextWeek: Boolean,
             ) : Single
 
             data class Sunday(
-                override val event: CalendarViewModel.SimplifiedEvent,
+                override val event: SimplifiedEvent,
                 val toNextWeek: Boolean,
             ) : Single, ThatAccepts.StartSpan<Double> {
 
                 override fun addEventThatSpansWeekdays(
-                    event: CalendarViewModel.SimplifiedEvent,
+                    event: SimplifiedEvent,
                     fromPreviousWeek: Boolean
                 ) = Double.WeekdaysPlusSunday(
                     startEvent = event,
@@ -436,7 +439,7 @@ interface EventRow {
                 )
 
                 override fun addEventThatSpansWeekdaysAndSaturday(
-                    event: CalendarViewModel.SimplifiedEvent,
+                    event: SimplifiedEvent,
                     fromPreviousWeek: Boolean
                 ) = Double.WeekdaysAndSaturdayPlusSunday(
                     startEvent = event,
@@ -445,7 +448,7 @@ interface EventRow {
                     toNextWeek = toNextWeek
                 )
 
-                override fun addEventThatSpansSaturday(event: CalendarViewModel.SimplifiedEvent) =
+                override fun addEventThatSpansSaturday(event: SimplifiedEvent) =
                     Double.SaturdayPlusSunday(
                         startEvent = event,
                         endEvent = this.event,
@@ -455,26 +458,26 @@ interface EventRow {
         }
 
         sealed interface Double : Span {
-            val startEvent: CalendarViewModel.SimplifiedEvent
-            val endEvent: CalendarViewModel.SimplifiedEvent
+            val startEvent: SimplifiedEvent
+            val endEvent: SimplifiedEvent
 
             data class WeekdaysPlusSunday(
-                override val startEvent: CalendarViewModel.SimplifiedEvent,
+                override val startEvent: SimplifiedEvent,
                 val fromPreviousWeek: Boolean,
-                override val endEvent: CalendarViewModel.SimplifiedEvent,
+                override val endEvent: SimplifiedEvent,
                 val toNextWeek: Boolean,
             ) : Double
 
             data class WeekdaysAndSaturdayPlusSunday(
-                override val startEvent: CalendarViewModel.SimplifiedEvent,
+                override val startEvent: SimplifiedEvent,
                 val fromPreviousWeek: Boolean,
-                override val endEvent: CalendarViewModel.SimplifiedEvent,
+                override val endEvent: SimplifiedEvent,
                 val toNextWeek: Boolean,
             ) : Double
 
             data class SaturdayPlusSunday(
-                override val startEvent: CalendarViewModel.SimplifiedEvent,
-                override val endEvent: CalendarViewModel.SimplifiedEvent,
+                override val startEvent: SimplifiedEvent,
+                override val endEvent: SimplifiedEvent,
                 val toNextWeek: Boolean,
             ) : Double
         }
@@ -483,7 +486,7 @@ interface EventRow {
 
 @Composable
 private fun EventsOnWeek(
-    weekOfEvents: CalendarViewModel.WeekOfEvents,
+    weekOfEvents: WeekOfEvents,
     modifier: Modifier = Modifier,
 ) {
     val monday = weekOfEvents.monday
@@ -605,7 +608,7 @@ private fun EventsOnWeek(
 }
 
 @Composable
-private fun EventCard(event: CalendarViewModel.SimplifiedEvent, modifier: Modifier = Modifier) {
+private fun EventCard(event: SimplifiedEvent, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxHeight()

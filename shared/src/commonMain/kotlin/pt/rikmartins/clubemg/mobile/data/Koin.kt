@@ -12,11 +12,13 @@ import io.ktor.http.ContentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.service.event.EventCalendarApi
-import pt.rikmartins.clubemg.mobile.domain.entity.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 
 internal val dataModule = module {
@@ -53,8 +55,8 @@ internal val dataModule = module {
 
             }
 
-            override val isAccessing: Flow<Boolean>
-                get() = flowOf(false)
+            override val isAccessing: StateFlow<Boolean>
+                get() = MutableStateFlow(false)
         }
     }
     single<EventRepository> { EventRepositoryImpl(get(), get()) }
