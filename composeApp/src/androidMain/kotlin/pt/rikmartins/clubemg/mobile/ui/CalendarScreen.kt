@@ -630,6 +630,9 @@ private fun EventCard(event: SimplifiedEvent, modifier: Modifier = Modifier) {
                 .weight(3f)
                 .onSizeChanged { imageSize = it },
             contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.fallback),
+            error = painterResource(id = R.drawable.fallback),
+            fallback = painterResource(id = R.drawable.fallback),
         )
         Text(
             text = event.title,
