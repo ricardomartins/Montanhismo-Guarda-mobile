@@ -7,22 +7,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
@@ -34,12 +40,17 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
     val model by viewModel.model.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
+    val scope = rememberCoroutineScope()
+
     val today = model.today
+    val todayMonday = today?.thisWeeksMonday()
     val weeks = model.weeksOfEvents
+
+    var showFab by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
-    LaunchedEffect(listState) {
+    LaunchedEffect(listState, todayMonday) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collect { visibleInfo ->
             val firstVisibleDate = (visibleInfo.firstOrNull()?.key as? Long)
                 ?.let { LocalDate.fromEpochDays(it) }
@@ -47,6 +58,14 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
                 ?.let { LocalDate.fromEpochDays(it) }
             if (firstVisibleDate != null && lastVisibleDate != null)
                 viewModel.requestDateRange(firstVisibleDate..lastVisibleDate)
+
+            val todayMondayKey = todayMonday?.toEpochDays()
+            if (todayMondayKey != null) {
+                val isTodayVisible = visibleInfo.any { it.key == todayMondayKey }
+                showFab = !isTodayVisible
+            } else {
+                showFab = false
+            }
         }
     }
 
@@ -61,7 +80,24 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
                 ),
                 scrollBehavior = scrollBehavior,
             )
-        }
+        },
+        floatingActionButton = {
+            if (showFab) FloatingActionButton(
+                onClick = {
+                    todayMonday?.let { todaysMonday ->
+                        scope.launch {
+                            val index = weeks.indexOfFirst { it.monday == todaysMonday }
+                            if (index >= 0) listState.animateScrollToItem(index)
+                        }
+                    }
+                },
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.today_24),
+                    contentDescription = stringResource(R.string.jump_to_today),
+                )
+            }
+        },
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
