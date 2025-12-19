@@ -13,12 +13,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
 
@@ -33,6 +38,17 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
     val weeks = model.weeksOfEvents
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collect { visibleInfo ->
+            val firstVisibleDate = (visibleInfo.firstOrNull()?.key as? Long)
+                ?.let { LocalDate.fromEpochDays(it) }
+            val lastVisibleDate = (visibleInfo.lastOrNull()?.key as? Long)
+                ?.let { LocalDate.fromEpochDays(it) }
+            if (firstVisibleDate != null && lastVisibleDate != null)
+                viewModel.requestDateRange(firstVisibleDate..lastVisibleDate)
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),

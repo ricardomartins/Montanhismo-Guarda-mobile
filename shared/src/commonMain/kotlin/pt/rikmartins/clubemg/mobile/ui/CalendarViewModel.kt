@@ -51,7 +51,7 @@ class CalendarViewModel(
         val today: LocalDate?,
     )
 
-    fun requestDateRange(dateRange: ClosedRange<LocalDate>) {
+    fun requestDateRange(dateRange: LocalDateRange) {
         viewModelScope.launch {
             eventDateRequester(dateRange.start)
             eventDateRequester(dateRange.endInclusive)
