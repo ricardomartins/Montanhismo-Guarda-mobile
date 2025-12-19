@@ -1,5 +1,8 @@
 package pt.rikmartins.clubemg.mobile.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -82,20 +85,26 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             )
         },
         floatingActionButton = {
-            if (showFab) FloatingActionButton(
-                onClick = {
-                    todayMonday?.let { todaysMonday ->
-                        scope.launch {
-                            val index = weeks.indexOfFirst { it.monday == todaysMonday }
-                            if (index >= 0) listState.animateScrollToItem(index)
-                        }
-                    }
-                },
+            AnimatedVisibility(
+                visible = showFab,
+                enter = scaleIn(),
+                exit = scaleOut(),
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.today_24),
-                    contentDescription = stringResource(R.string.jump_to_today),
-                )
+                FloatingActionButton(
+                    onClick = {
+                        todayMonday?.let { todaysMonday ->
+                            scope.launch {
+                                val index = weeks.indexOfFirst { it.monday == todaysMonday }
+                                if (index >= 0) listState.animateScrollToItem(index)
+                            }
+                        }
+                    },
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.today_24),
+                        contentDescription = stringResource(R.string.jump_to_today),
+                    )
+                }
             }
         },
     ) { paddingValues ->
