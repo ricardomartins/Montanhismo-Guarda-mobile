@@ -556,7 +556,7 @@ private fun EventsOnWeek(
 
     Column(modifier = modifier) {
         rows.forEach { eventRow ->
-            Row {
+            Row(Modifier.weight(1f)) {
                 when (eventRow) {
                     is EventRow.Span.Single.Weekdays -> {
                         EventCard(eventRow.event, modifier = Modifier.weight(FULL_DAY_WEIGHT))
