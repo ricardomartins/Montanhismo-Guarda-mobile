@@ -55,21 +55,15 @@ val OutlineDark = Color(0xFF8C8EA9)
 // Custom Colors
 
 // Light Theme Colors
-val MonthSurface1 = Color(0xFFFFF4F2)
-val MonthOnSurface1 = Color(0xFF5A4D4A)
+val MonthSurface1 = Color(0xFFF7F5F4)
+val MonthOnSurface1 = Color(0xFF313133)
 
-val MonthSurface2 = Color(0xFFF0F5FF)
-val MonthOnSurface2 = Color(0xFF4A5059)
-
-val MonthSurface3 = Color(0xFFF0F9F4)
-val MonthOnSurface3 = Color(0xFF49544F)
+val MonthSurface2 = Color(0xFFF4F5F7)
+val MonthOnSurface2 = Color(0xFF313133)
 
 // Dark Theme Colors
-val MonthSurface1Dark = Color(0xFF4A3C39)
-val MonthOnSurface1Dark = Color(0xFFE8DEDC)
+val MonthSurface1Dark = Color(0xFF383636)
+val MonthOnSurface1Dark = Color(0xFFe3e3e6)
 
-val MonthSurface2Dark = Color(0xFF383E48)
-val MonthOnSurface2Dark = Color(0xFFD0D5DE)
-
-val MonthSurface3Dark = Color(0xFF37423D)
-val MonthOnSurface3Dark = Color(0xFFD0D9D5)
+val MonthSurface2Dark = Color(0xFF363638)
+val MonthOnSurface2Dark = Color(0xFFe3e3e6)

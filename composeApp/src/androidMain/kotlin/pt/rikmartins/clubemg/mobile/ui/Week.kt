@@ -226,12 +226,11 @@ private fun DayBox(
 private fun CustomColorsPalette.getSurfaceAndOnSurfaceOfDate(
     localDate: LocalDate,
 ): Pair<Color, Color> {
-    val monthColorSet = localDate.month.ordinal % 3
+    val monthColorSet = localDate.month.ordinal % 2
 
     return when (monthColorSet) {
         0 -> monthSurface1 to monthOnSurface1
-        1 -> monthSurface2 to monthOnSurface2
-        else -> monthSurface3 to monthOnSurface3
+        else -> monthSurface2 to monthOnSurface2
     }
 }
 

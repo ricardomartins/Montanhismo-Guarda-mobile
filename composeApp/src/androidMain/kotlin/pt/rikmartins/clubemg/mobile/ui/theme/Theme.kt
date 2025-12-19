@@ -16,8 +16,6 @@ data class CustomColorsPalette(
     val monthOnSurface1: Color = Color.Unspecified,
     val monthSurface2: Color = Color.Unspecified,
     val monthOnSurface2: Color = Color.Unspecified,
-    val monthSurface3: Color = Color.Unspecified,
-    val monthOnSurface3: Color = Color.Unspecified,
 )
 
 val LightCustomColorsPalette = CustomColorsPalette(
@@ -25,8 +23,6 @@ val LightCustomColorsPalette = CustomColorsPalette(
     monthOnSurface1 = MonthOnSurface1,
     monthSurface2 = MonthSurface2,
     monthOnSurface2 = MonthOnSurface2,
-    monthSurface3 = MonthSurface3,
-    monthOnSurface3 = MonthOnSurface3,
 )
 
 val DarkCustomColorsPalette = CustomColorsPalette(
@@ -34,8 +30,6 @@ val DarkCustomColorsPalette = CustomColorsPalette(
     monthOnSurface1 = MonthOnSurface1Dark,
     monthSurface2 = MonthSurface2Dark,
     monthOnSurface2 = MonthOnSurface2Dark,
-    monthSurface3 = MonthSurface3Dark,
-    monthOnSurface3 = MonthOnSurface3Dark,
 )
 
 val LocalCustomColorsPalette = staticCompositionLocalOf { CustomColorsPalette() }
