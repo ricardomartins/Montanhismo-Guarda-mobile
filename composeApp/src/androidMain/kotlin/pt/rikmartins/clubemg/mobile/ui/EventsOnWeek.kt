@@ -1,6 +1,5 @@
 package pt.rikmartins.clubemg.mobile.ui
 
-import android.R.attr.onClick
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,8 +24,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
-import pt.rikmartins.clubemg.mobile.domain.entity.WeekOfEvents
+import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
+import pt.rikmartins.clubemg.mobile.thisWeeksSunday
 
 
 interface EventRow {

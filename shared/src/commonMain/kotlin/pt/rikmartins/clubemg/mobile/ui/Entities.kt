@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.domain.entity
+package pt.rikmartins.clubemg.mobile.ui
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
@@ -10,7 +10,7 @@ import kotlin.time.ExperimentalTime
 
 data class WeekOfEvents(
     val monday: LocalDate,
-    val events: List<SimplifiedEvent>,
+    val events: List<SimplifiedEvent> = emptyList(),
 )
 
 @OptIn(ExperimentalTime::class)

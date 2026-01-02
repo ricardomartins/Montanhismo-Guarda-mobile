@@ -29,8 +29,9 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.toJavaLocalDate
-import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
-import pt.rikmartins.clubemg.mobile.domain.entity.WeekOfEvents
+import pt.rikmartins.clubemg.mobile.thisWeeksFriday
+import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
+import pt.rikmartins.clubemg.mobile.thisWeeksSunday
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
 import java.time.format.DateTimeFormatter

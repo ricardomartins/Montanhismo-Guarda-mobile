@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +61,7 @@ fun CalendarScreen(navigateToDetails: (eventId: String) -> Unit) {
             val lastVisibleDate = (visibleInfo.lastOrNull()?.key as? Long)
                 ?.let { LocalDate.fromEpochDays(it) }
             if (firstVisibleDate != null && lastVisibleDate != null)
-                viewModel.requestDateRange(firstVisibleDate..lastVisibleDate)
+                viewModel.notifyViewedDates(firstVisibleDate..lastVisibleDate)
 
             val todayMondayKey = todayMonday?.toEpochDays()
             if (todayMondayKey != null) {
