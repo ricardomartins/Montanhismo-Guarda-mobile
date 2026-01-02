@@ -49,11 +49,7 @@ CREATE TABLE CalendarEvent (
     endDate INTEGER AS Instant NOT NULL
 );
 
-getAllEvents:
-SELECT *
-FROM CalendarEvent;
-
-getEventsInRange:
+selectEventsInRange:
 SELECT *
 FROM CalendarEvent
 WHERE endDate >= :rangeStart
@@ -123,10 +119,4 @@ VALUES (?, ?);
 selectAllWithImages:
 SELECT * FROM CalendarEvent
 LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId;
-
-selectEventsWithImagesInRange:
-SELECT * FROM CalendarEvent
-LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
-WHERE endDate >= :rangeStart
-AND startDate <= :rangeEnd;
 --endregion Multiple table

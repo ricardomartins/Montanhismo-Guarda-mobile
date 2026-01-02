@@ -17,7 +17,6 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.cache.AppDatabase
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
-import pt.rikmartins.clubemg.mobile.cache.SelectEventsWithImagesInRange
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
@@ -77,10 +76,10 @@ class DataBaseEventStorage(
     }
 
     private fun saveEvents(events: List<CalendarEvent>, dateRange: LocalDateRange, timeZone: TimeZone) {
-        val existingEvents = queries.selectEventsWithImagesInRange(
+        val existingEvents = queries.selectEventsInRange(
             rangeStart = dateRange.start.atStartOfDayIn(timeZone),
             rangeEnd = dateRange.endInclusive.atEndOfDayIn(timeZone),
-        ).executeAsList().toStorageCalendarEvent()
+        ).executeAsList()
 
         val eventsToDelete = existingEvents.toMutableList()
         val eventsToUpsert = events.toMutableList()
@@ -232,40 +231,6 @@ class DataBaseEventStorage(
                 }
             )
         }
-
-    private fun List<SelectEventsWithImagesInRange>.toStorageCalendarEvent(): List<StorageCalendarEvent> =
-        this.groupBy { it.id }
-            .map { (_, rowList) ->
-                val calendarEvent = rowList.first()
-
-                StorageCalendarEvent(
-                    id = calendarEvent.id,
-                    creationDate = calendarEvent.creationDate,
-                    modifiedDate = calendarEvent.modifiedDate,
-                    title = calendarEvent.title,
-                    url = calendarEvent.url,
-                    description = calendarEvent.description,
-                    allDay = false, // FIXME
-                    startDate = calendarEvent.startDate,
-                    endDate = calendarEvent.endDate,
-                    images = rowList.mapNotNull { eventImage ->
-                        if (eventImage.url_ != null &&
-                            eventImage.width != null &&
-                            eventImage.height != null &&
-                            eventImage.fileSize != null
-                        ) {
-                            StorageEventImage(
-                                calendarEventId = calendarEvent.id,
-                                id = eventImage.id_,
-                                url = eventImage.url_,
-                                width = eventImage.width.toInt(),
-                                height = eventImage.height.toInt(),
-                                fileSize = eventImage.fileSize.toInt(),
-                            )
-                        } else null
-                    }
-                )
-            }
 
     // Remember: database precision is in milliseconds
     private fun LocalDate.atEndOfDayIn(timeZone: TimeZone): Instant =
