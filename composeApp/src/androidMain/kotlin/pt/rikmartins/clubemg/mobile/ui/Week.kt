@@ -29,6 +29,7 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.toJavaLocalDate
+import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
 import pt.rikmartins.clubemg.mobile.domain.entity.WeekOfEvents
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
@@ -45,6 +46,7 @@ private val WEEK_HEIGHT_IN_DP = WEEK_HEIGHT.dp
 internal fun Week(
     weekOfEvents: WeekOfEvents,
     today: LocalDate?,
+    onEventClick: (event: SimplifiedEvent) -> Unit,
 ) = Box(contentAlignment = Alignment.BottomCenter) {
     var dayLabelSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -70,7 +72,8 @@ internal fun Week(
             modifier = Modifier.height(WEEK_HEIGHT_IN_DP)
         )
     }
-    if (weekOfEvents.events.isNotEmpty()) EventsOnWeek(weekOfEvents, modifier = Modifier.height(eventsHeight))
+    if (weekOfEvents.events.isNotEmpty())
+        EventsOnWeek(weekOfEvents, onEventClick, modifier = Modifier.height(eventsHeight))
 }
 
 @Composable

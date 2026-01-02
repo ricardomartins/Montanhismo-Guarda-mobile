@@ -1,33 +1,25 @@
 package pt.rikmartins.clubemg.mobile.data.service.event
 
 import com.fleeksoft.ksoup.Ksoup
-import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
 import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.resources.Resource
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -39,83 +31,74 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
+import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.orEmpty
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
-class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.EventSource {
+class EventCalendarApi(
+    private val client: HttpClient,
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : EventRepositoryImpl.EventSource {
 
-    private var _timezone = MutableStateFlow(DEFAULT_API_TIMEZONE)
+    override suspend fun getEvents(dateRange: LocalDateRange): List<CalendarEvent> = coroutineScope {
+        val startDateAsParam = dateRange.start.atTime(0, 0).asEventDate()
+        val endDateAsParam = dateRange.endInclusive.atTime(23, 59, 59, 999_999_999).asEventDate()
 
-    override val timezone: StateFlow<TimeZone> = _timezone.distinctUntilChangedBy { it }
-        .mapNotNull { runCatching { TimeZone.of(it) }.getOrNull() }
-        .stateIn(
-            scope = CoroutineScope(SupervisorJob()),
-            started = SharingStarted.Lazily,
-            initialValue = TimeZone.of(DEFAULT_API_TIMEZONE)
-        )
+        val events = buildList {
+            val headPage = client.get(
+                EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)
+            ).body<EventResponse>()
+            add(headPage)
 
-    override suspend fun getEvents(
-        startDate: Instant,
-        endDate: Instant,
-    ): List<CalendarEvent> = coroutineScope {
-        val timezone = timezone.first()
-
-        val startDateAsParam = startDate.toLocalDateTime(timezone).asEventDate()
-        val endDateAsParam = endDate.toLocalDateTime(timezone).asEventDate()
-
-        val events = try {
-            isAccessing.value = true
-            val headPage = async(Dispatchers.IO) {
-                client.get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)).body<EventResponse>()
-            }.await()
-
-            val tailPages = headPage.totalPages.takeIf { it > 1 }?.let { 2..it }
+            headPage.totalPages.takeIf { it > 1 }?.let { 2..it }
                 ?.map {
-                    async(Dispatchers.IO) {
+                    async(defaultDispatcher) {
                         client.get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = it))
                             .body<EventResponse>()
                     }
                 }
                 ?.awaitAll()
-                ?: emptyList()
-            (listOf(headPage) + tailPages).flatMap { it.events }.distinctBy { it.id }
-        } finally {
-            isAccessing.value = false
-        }
+                ?.let { addAll(it) }
+        }.flatMap { it.events }.distinctBy { it.id }
 
-        events.map { event ->
-            _timezone.value = event.timezone
-
-            ApiCalendarEvent(
-                id = event.id.toString(),
-                creationDate = event.date.asLocalDateTime().toInstant(timezone),
-                modifiedDate = event.modified.asLocalDateTime().toInstant(timezone),
-                url = event.url,
-                title = Ksoup.clean(event.title),
-                description = event.description,
-                allDay = event.allDay,
-                startDate = event.startDate.asLocalDateTime().toInstant(timezone),
-                endDate = event.endDate.asLocalDateTime().toInstant(timezone),
-                images = event.image?.run {
-                    buildList {
-                        add(this@run.asEventImage(null))
-                        sizes.forEach { (key, value) -> add(value.asEventImage(key)) }
-                    }
-                }.orEmpty()
-            )
-        }
+        events.map { event -> event.asApiCalendarEvent()}
     }
 
-    override val isAccessing: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    override suspend fun getTimeZone(): TimeZone {
+        TODO("Not yet implemented")
+    }
+
+    private fun EventItem.asApiCalendarEvent(): ApiCalendarEvent {
+        val timeZone = TimeZone.of(timezone)
+
+        return ApiCalendarEvent(
+            id = id.toString(),
+            creationDate = date.asLocalDateTime().toInstant(timeZone),
+            modifiedDate = modified.asLocalDateTime().toInstant(timeZone),
+            url = url,
+            title = Ksoup.clean(title),
+            description = description,
+            allDay = allDay,
+            startDate = startDate.asLocalDateTime().toInstant(timeZone),
+            endDate = endDate.asLocalDateTime().toInstant(timeZone),
+            images = image?.run {
+                buildList {
+                    add(this@run.asEventImage(null))
+                    sizes.forEach { (key, value) -> add(value.asEventImage(key)) }
+                }
+            }.orEmpty()
+        )
+    }
 
     private fun LocalDateTime.asEventDate(): String = format(EVENT_DATE_TIME_FORMAT)
     private fun String.asLocalDateTime(): LocalDateTime = LocalDateTime.parse(this, EVENT_DATE_TIME_FORMAT)
 
     private companion object {
-        const val DEFAULT_API_TIMEZONE = "Europe/Lisbon"
-
         const val PAGE_SIZE = 10
 
         val EVENT_DATE_TIME_FORMAT = LocalDateTime.Format {
@@ -141,6 +124,14 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         override val endDate: Instant,
         override val images: List<ApiEventImage>,
     ) : CalendarEvent
+
+    private data class ApiEventImage(
+        override val id: String?,
+        override val url: String,
+        override val width: Int,
+        override val height: Int,
+        override val fileSize: Int,
+    ): EventImage
 
     @Serializable
     @Resource("/events")
@@ -198,14 +189,6 @@ class EventCalendarApi(private val client: HttpClient) : EventRepositoryImpl.Eve
         @Resource("{id}")
         data class Id(val parent: TagsResource = TagsResource(), val id: Int)
     }
-    private data class ApiEventImage(
-        override val id: String?,
-        override val url: String,
-        override val width: Int,
-        override val height: Int,
-        override val fileSize: Int,
-    ): EventImage
-
     @Serializable
     private data class EventItem(
         val id: Int, // The event ID

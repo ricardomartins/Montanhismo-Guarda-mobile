@@ -8,13 +8,10 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 interface EventRepository {
-    val localAccess: Flow<Boolean>
-    val remoteAccess: Flow<Boolean>
     suspend fun requestDate(date: LocalDate)
-    val providedStartDate: Flow<Instant?>
-    val providedEndDate: Flow<Instant?>
     val events: Flow<List<CalendarEvent>>
     val eventsTimezone: Flow<TimeZone>
+    suspend fun setCacheExpirationDate(expirationDate: Instant)
 }
 
 @OptIn(ExperimentalTime::class)

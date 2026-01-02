@@ -1,0 +1,132 @@
+import kotlin.time.Instant;
+import kotlinx.datetime.LocalDate;
+import kotlinx.datetime.TimeZone;
+
+PRAGMA recursive_triggers = 1;
+
+--region DateRangeTimestamp
+CREATE TABLE DateRangeTimestamp (
+    id INTEGER PRIMARY KEY,
+    dateRangeStart INTEGER AS LocalDate NOT NULL,
+    dateRangeEnd INTEGER AS LocalDate NOT NULL,
+    timestamp INTEGER AS Instant NOT NULL
+);
+
+getAllDateRangeTimestamps:
+SELECT *
+FROM DateRangeTimestamp;
+
+getDateRangeTimestampsThatIntersectRange:
+SELECT *
+FROM DateRangeTimestamp
+WHERE dateRangeEnd >= :rangeStart
+AND dateRangeStart <= :rangeEnd;
+
+insertDateRangeTimestamp:
+INSERT INTO DateRangeTimestamp (dateRangeStart, dateRangeEnd, timestamp)
+VALUES (:rangeStart, :rangeEnd, :timestamp);
+
+deleteDateRangeTimestampWithId:
+DELETE FROM DateRangeTimestamp
+WHERE id = ?;
+
+updateDateRangeTimestampWithId:
+UPDATE DateRangeTimestamp
+SET dateRangeStart = :rangeStart,
+    dateRangeEnd = :rangeEnd
+WHERE id == :id;
+--endregion DateRangeTimestamp
+
+--region CalendarEvent
+CREATE TABLE CalendarEvent (
+    id TEXT PRIMARY KEY NOT NULL,
+    creationDate INTEGER AS Instant NOT NULL,
+    modifiedDate INTEGER AS Instant NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    description TEXT NOT NULL,
+    startDate INTEGER AS Instant NOT NULL,
+    endDate INTEGER AS Instant NOT NULL
+);
+
+getAllEvents:
+SELECT *
+FROM CalendarEvent;
+
+getEventsInRange:
+SELECT *
+FROM CalendarEvent
+WHERE endDate >= :rangeStart
+AND startDate <= :rangeEnd;
+
+replaceEvent:
+INSERT OR REPLACE INTO CalendarEvent
+VALUES ?;
+
+deleteEvent:
+DELETE FROM CalendarEvent
+WHERE id == ?;
+
+deleteEvents:
+DELETE FROM CalendarEvent
+WHERE id IN ?;
+--endregion CalendarEvent
+
+--region EventImage
+CREATE TABLE EventImage (
+    calendarEventId TEXT NOT NULL,
+    id TEXT,
+    url TEXT NOT NULL,
+    width INTEGER NOT NULL,
+    height INTEGER NOT NULL,
+    fileSize INTEGER NOT NULL,
+    FOREIGN KEY(calendarEventId) REFERENCES CalendarEvent(id) ON DELETE CASCADE,
+    UNIQUE (calendarEventId, id) ON CONFLICT REPLACE
+);
+
+getImagesOfEvent:
+SELECT *
+FROM EventImage
+WHERE calendarEventId = ?;
+
+getImagesOfEvents:
+SELECT *
+FROM EventImage
+WHERE calendarEventId IN ?;
+
+replaceEventImage:
+INSERT OR REPLACE INTO EventImage
+VALUES ?;
+
+deleteImagesOfEvents:
+DELETE FROM EventImage
+WHERE calendarEventId IN ?;
+--endregion EventImage
+
+--region SingleValues
+CREATE TABLE SingleTextValue (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT
+);
+
+getTextValue:
+SELECT *
+FROM SingleTextValue
+WHERE key = ?;
+
+setTextValue:
+INSERT OR REPLACE INTO SingleTextValue (key, value)
+VALUES (?, ?);
+--endregion SingleValues
+
+--region Multiple table
+selectAllWithImages:
+SELECT * FROM CalendarEvent
+LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId;
+
+selectEventsWithImagesInRange:
+SELECT * FROM CalendarEvent
+LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
+WHERE endDate >= :rangeStart
+AND startDate <= :rangeEnd;
+--endregion Multiple table

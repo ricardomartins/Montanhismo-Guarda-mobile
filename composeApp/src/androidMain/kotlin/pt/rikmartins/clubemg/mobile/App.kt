@@ -15,7 +15,7 @@ import pt.rikmartins.clubemg.mobile.ui.theme.AppTheme
 object CalendarDestination
 
 @Serializable
-data class EventDetailDestination(val objectId: Int)
+data class EventDetailDestination(val eventId: String)
 
 @Composable
 fun App() {
@@ -25,12 +25,12 @@ fun App() {
             NavHost(navController = navController, startDestination = CalendarDestination) {
                 composable<CalendarDestination> {
                     CalendarScreen(navigateToDetails = { objectId ->
-                        navController.navigate(EventDetailDestination(objectId))
+//                        navController.navigate(EventDetailDestination(objectId))
                     })
                 }
                 composable<EventDetailDestination> { backStackEntry ->
                     EventDetailScreen(
-                        objectId = backStackEntry.toRoute<EventDetailDestination>().objectId,
+                        eventId = backStackEntry.toRoute<EventDetailDestination>().eventId,
                         navigateBack = navController::popBackStack
                     )
                 }

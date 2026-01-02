@@ -11,14 +11,10 @@ import io.ktor.client.plugins.resources.Resources
 import io.ktor.http.ContentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.service.event.EventCalendarApi
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
+import pt.rikmartins.clubemg.mobile.data.storage.DataBaseEventStorage
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 
 internal val dataModule = module {
@@ -43,21 +39,6 @@ internal val dataModule = module {
     }
 
     single<EventRepositoryImpl.EventSource> { EventCalendarApi(get()) }
-    single<EventRepositoryImpl.EventStorage> { // FIXME
-        object : EventRepositoryImpl.EventStorage {
-            override fun getAllEvents(): Flow<List<CalendarEvent>> = flowOf(emptyList())
-
-            override suspend fun saveEvents(events: List<CalendarEvent>) {
-
-            }
-
-            override suspend fun deleteEvents(events: List<CalendarEvent>) {
-
-            }
-
-            override val isAccessing: StateFlow<Boolean>
-                get() = MutableStateFlow(false)
-        }
-    }
-    single<EventRepository> { EventRepositoryImpl(get(), get()) }
+    single<EventRepositoryImpl.EventStorage> { DataBaseEventStorage(get()) }
+    single<EventRepository> { EventRepositoryImpl(get(), get(), get()) }
 }

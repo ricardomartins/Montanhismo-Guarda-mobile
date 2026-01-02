@@ -9,22 +9,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import pt.rikmartins.clubemg.mobile.data.MuseumObject
-import pt.rikmartins.clubemg.mobile.data.MuseumRepository
+import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
 
-class DetailViewModel(private val museumRepository: MuseumRepository) : ViewModel() {
-    private val objectId = MutableStateFlow<Int?>(null)
+class DetailViewModel(
+//    private val observeEvent: ObserveEvent,
+) : ViewModel() {
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @NativeCoroutinesState
-    val museumObject: StateFlow<MuseumObject?> = objectId
-        .flatMapLatest {
-            val id = it ?: return@flatMapLatest flowOf(null)
-            museumRepository.getObjectById(id)
-        }
-        .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5000), null)
+    private val eventId = MutableStateFlow<String?>(null)
 
-    fun setId(objectId: Int) {
-        this.objectId.value = objectId
+//    @OptIn(ExperimentalCoroutinesApi::class)
+//    @NativeCoroutinesState
+//    val event: StateFlow<SimplifiedEvent?> = eventId.flatMapLatest {
+//        it?.let { observeEvent(it) } ?: flowOf(null)
+//    }
+//        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun setEventId(eventId: String) {
+        this.eventId.value = eventId
     }
 }

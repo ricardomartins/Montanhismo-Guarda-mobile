@@ -1,23 +1,27 @@
 package pt.rikmartins.clubemg.mobile.data
 
+import kotlinx.coroutines.CoroutineScope
 import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.runningReduce
-import kotlinx.coroutines.flow.scan
-import kotlinx.datetime.DateTimeUnit
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
+import pt.rikmartins.clubemg.mobile.nextDay
+import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
@@ -26,211 +30,154 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class, FlowPreview::class)
 class EventRepositoryImpl(
+    private val externalScope: CoroutineScope,
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
+    private val bootTime: Instant = Clock.System.now()
 ) : EventRepository {
-    override val localAccess by lazy { eventSource.isAccessing }
 
-    override val remoteAccess by lazy { eventStorage.isAccessing }
+    private val expirationDate: MutableStateFlow<Instant> = MutableStateFlow(bootTime.minus(DEFAULT_CACHE_DURATION))
 
-    private val _startDate = MutableStateFlow(getEarliestDateToStore())
+    private val bootDate: LocalDate
+        get() = bootTime.toLocalDate(timeZone = TimeZone.UTC)
 
-    private val _endDate = MutableStateFlow(getLatestDateToStore())
+    private val relevantDates = MutableStateFlow(
+        bootDate.minus(BEFORE_TODAY_PERIOD)..bootDate.plus(AFTER_TODAY_PERIOD)
+    )
+
+    init {
+        externalScope.launch {
+            combine(
+                expirationDate,
+                relevantDates.debounce(DATE_CHANGE_DEBOUNCE_DURATION)
+            ) { expiration, dates -> expiration to dates }
+                .collectLatest { (expiration, dates) ->
+                    refreshStaleEvents(dates, expiration)
+                }
+        }
+    }
 
     override suspend fun requestDate(date: LocalDate) {
-        val timezone = eventsTimezone.first()
-        val startDate = date.atStartOfDayIn(timezone)
-        val endDate = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timezone)
-
         when {
-            startDate < _startDate.value -> _startDate.value = startDate
-            endDate > _endDate.value -> _endDate.value = endDate
+            date < relevantDates.value.start -> relevantDates.value = date..relevantDates.value.endInclusive
+            date > relevantDates.value.endInclusive -> relevantDates.value = relevantDates.value.start..date
         }
     }
 
-    private val storedEvents = eventStorage.getAllEvents().map { events ->
-        var startDate: Instant? = null
-        var endDate: Instant? = null
-        events.forEach {
-            if (startDate == null || it.startDate < startDate) {
-                startDate = it.startDate
-            }
-            if (endDate == null || it.endDate > endDate) {
-                endDate = it.endDate
-            }
-        }
-
-        EventsAndDates(
-            events = events,
-            startDate = startDate,
-            endDate = endDate,
-        )
+    override suspend fun setCacheExpirationDate(expirationDate: Instant) {
+        this.expirationDate.value = expirationDate
     }
 
-    private val freshEvents = combine(
-        _startDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION).distinctUntilChanged(),
-        _endDate.debounce(DATE_CHANGE_DEBOUNCE_DURATION).distinctUntilChanged(),
-    ) { startDate, endDate -> startDate to endDate }
-        .scan(initial = DateChanges(startDate = Change(), endDate = Change())) { acc, (startDate, endDate) ->
-            DateChanges(
-                startDate = Change(previous = acc.startDate.current, current = startDate),
-                endDate = Change(previous = acc.endDate.current, current = endDate)
-            )
-        }
-        .map { (startDate, endDate) ->
-            EventsAndDates(
-                events = startDate.current?.let { currentStartDate ->
-                    endDate.current?.let { currentEndDate ->
-                        buildList {
-                            if (startDate.previous != null && endDate.previous != null) {
-                                // We have previous dates, so fetch changes
-                                if (endDate.hasChanged) {
-                                    // Fetch events from the previous end date up to the new current end date
-                                    add(endDate.previous..<currentEndDate)
-                                }
-                                if (startDate.hasChanged) {
-                                    // Fetch events from the new current start date up to the previous start date
-                                    add(currentStartDate..<startDate.previous)
-                                }
+    override val eventsTimezone: Flow<TimeZone>
+        get() = eventStorage.timezone
 
-                            } else {
-                                // No complete previous range, so do an initial full fetch
-                                add(currentStartDate..<currentEndDate)
-                            }
-                        }
-                            .flatMap { eventSource.getEvents(it.start, it.endExclusive) }
-                    }
-                } ?: emptyList<CalendarEvent>(),
-                startDate = startDate.current,
-                endDate = endDate.current,
-            )
+    override val events: Flow<List<CalendarEvent>>
+        get() = eventStorage.events
+
+    private suspend fun refreshStaleEvents(relevantDates: LocalDateRange, expirationDate: Instant) = coroutineScope {
+        eventStorage.getDateRangeTimestampsOf(relevantDates)
+            .fillGaps(relevantDates)
+            .filter { rangeTimestamp -> rangeTimestamp.timestamp < expirationDate }
+            .map { it.dateRange.intersectWith(relevantDates) }
+            .mergeCloseEnoughRanges()
+            .map {
+                async {
+                    val events = eventSource.getEvents(it)
+                    eventStorage.saveEventsAndRanges(events, it)
+                }
+            }.awaitAll()
+    }
+
+    private fun List<DateRangeTimestamp>.fillGaps(relevantDates: LocalDateRange): List<DateRangeTimestamp> {
+       val sortedRanges = sortedBy { it.dateRange.start }
+
+        val filledList = mutableListOf<DateRangeTimestamp>()
+
+        var nextExpectedStart = relevantDates.start
+
+        for (item in sortedRanges) {
+            val range = item.dateRange
+
+            if (range.start > nextExpectedStart) {
+                val gapEnd = minOf(range.start.previousDay(), relevantDates.endInclusive)
+
+                if (nextExpectedStart <= gapEnd) {
+                    filledList.add(
+                        DateRangeTimestamp(nextExpectedStart..gapEnd, Instant.DISTANT_PAST)
+                    )
+                }
+            }
+
+            filledList.add(item)
+
+            val nextDay = range.endInclusive.nextDay()
+            if (nextDay > nextExpectedStart) {
+                nextExpectedStart = nextDay
+            }
         }
-        .runningReduce { acc, value ->
-            EventsAndDates(
-                events = (value.events + acc.events).distinctBy { it.id },
-                startDate = value.startDate,
-                endDate = value.endDate
+
+        // 3. Check for a trailing gap after the last existing range
+        if (nextExpectedStart <= relevantDates.endInclusive) {
+            filledList.add(
+                DateRangeTimestamp(nextExpectedStart..relevantDates.endInclusive, Instant.DISTANT_PAST)
             )
         }
 
-    override val events: Flow<List<CalendarEvent>> by lazy {
-        combine(storedEvents, freshEvents) { stored, fresh ->
-            val mergeStructure = mutableListOf<MergeStructure>()
-            val toStore = mutableListOf<CalendarEvent>()
-            val toDelete = mutableListOf<CalendarEvent>()
+        return filledList
+    }
 
-            var earlierFreshStartDate: Instant? = null
-            var latestFreshStartDate: Instant? = null
-
-            fresh.events.forEach { freshEvent ->
-                mergeStructure.add(MergeStructure(freshEvent = freshEvent))
-                if (earlierFreshStartDate == null || freshEvent.startDate < earlierFreshStartDate) {
-                    earlierFreshStartDate = freshEvent.startDate
-                }
-                if (latestFreshStartDate == null || freshEvent.startDate > latestFreshStartDate) {
-                    latestFreshStartDate = freshEvent.startDate
-                }
+    private fun List<LocalDateRange>.mergeCloseEnoughRanges(): List<LocalDateRange> = sortedBy { it.start }
+        .fold(mutableListOf()) { acc, dateRange ->
+            acc.apply {
+                if (lastOrNull()?.endInclusive?.plus(PROXIMITY_THRESHOLD)?.let { it >= dateRange.start } ?: false) {
+                    val last = removeLast()
+                    add(last.start..dateRange.endInclusive)
+                } else add(dateRange)
             }
-            stored.events.forEach { storedEvent ->
-                mergeStructure.firstOrNull { (it.freshEvent ?: it.storedEvent)!!.id == storedEvent.id }?.let {
-                    it.storedEvent = storedEvent
-                } ?: mergeStructure.add(MergeStructure(storedEvent = storedEvent))
-            }
-
-            val merged = mutableListOf<CalendarEvent>()
-            val earliestDateToStore = getEarliestDateToStore()
-            val latestDateToStore = getLatestDateToStore()
-
-            mergeStructure.forEach {
-                val storedEvent = it.storedEvent
-                val freshEvent = it.freshEvent
-
-                when {
-                    storedEvent != null && freshEvent != null -> {
-                        when {
-                            storedEvent.startDate > latestDateToStore || storedEvent.endDate < earliestDateToStore ->
-                                toDelete.add(storedEvent)
-
-                            freshEvent.modifiedDate > storedEvent.modifiedDate -> toStore.add(freshEvent)
-                        }
-                        merged.add(freshEvent)
-                    }
-
-                    freshEvent != null -> {
-                        if (freshEvent.startDate <= latestDateToStore && freshEvent.endDate >= earliestDateToStore) {
-                            toStore.add(freshEvent)
-                        }
-                        merged.add(freshEvent)
-                    }
-
-                    storedEvent != null -> {
-                        if (earlierFreshStartDate != null && storedEvent.startDate >= earlierFreshStartDate && storedEvent.startDate <= latestFreshStartDate!!) {
-                            toDelete.add(storedEvent)
-                        } else {
-                            if (storedEvent.startDate > latestDateToStore || storedEvent.endDate < earliestDateToStore) {
-                                toDelete.add(storedEvent)
-                            }
-                            merged.add(storedEvent)
-                        }
-                    }
-                }
-            }
-            eventStorage.deleteEvents(toDelete)
-            eventStorage.saveEvents(toStore)
-
-            merged.sortedBy { it.startDate }
         }
+
+    private fun LocalDateRange.intersectWith(other: LocalDateRange): LocalDateRange {
+        val start = maxOf(this.start, other.start)
+        val endInclusive = minOf(this.endInclusive, other.endInclusive)
+        return if (start <= endInclusive) start..endInclusive else LocalDateRange.EMPTY
     }
-    override val eventsTimezone: StateFlow<TimeZone>
-        get() = eventSource.timezone
-
-    override val providedStartDate by lazy {
-        combine(storedEvents, freshEvents) { (_, stored, _), (_, fresh, _) -> fresh ?: stored }
-    }
-
-    override val providedEndDate by lazy {
-        combine(storedEvents, freshEvents) { (_, _, stored), (_, _, fresh) -> fresh ?: stored }
-    }
-
-    private data class EventsAndDates(
-        val events: List<CalendarEvent>,
-        val startDate: Instant?,
-        val endDate: Instant?,
-    )
-
-    private data class MergeStructure(
-        var storedEvent: CalendarEvent? = null,
-        var freshEvent: CalendarEvent? = null,
-    )
-
-    private fun getEarliestDateToStore(): Instant =
-        Clock.System.now().minus(BEFORE_TODAY_PERIOD)
-
-    private fun getLatestDateToStore(): Instant =
-        Clock.System.now().plus(AFTER_TODAY_PERIOD)
 
     interface EventSource {
-        suspend fun getEvents(startDate: Instant, endDate: Instant): List<CalendarEvent>
-        val isAccessing: StateFlow<Boolean>
-        val timezone: StateFlow<TimeZone>
+        suspend fun getTimeZone(): TimeZone
+
+        suspend fun getEvents(dateRange: LocalDateRange): List<CalendarEvent>
     }
 
     interface EventStorage {
-        fun getAllEvents(): Flow<List<CalendarEvent>> // Should not emit empty, unless there are no events
-        suspend fun saveEvents(events: List<CalendarEvent>)
-        suspend fun deleteEvents(events: List<CalendarEvent>)
-        val isAccessing: StateFlow<Boolean>
+        val events: Flow<List<CalendarEvent>>
+
+        val timezone: Flow<TimeZone>
+
+        suspend fun setTimeZone(timezone: TimeZone)
+
+        suspend fun getDateRangeTimestampsOf(dateRange: LocalDateRange): List<DateRangeTimestamp>
+
+        suspend fun saveEventsAndRanges(
+            events: List<CalendarEvent>,
+            dateRange: LocalDateRange,
+            timestamp: Instant = Clock.System.now()
+        )
     }
 
-    private data class Change<T>(val previous: T? = null, val current: T? = null) {
-        val hasChanged: Boolean = previous != current
-    }
-
-    private data class DateChanges(val startDate: Change<Instant>, val endDate: Change<Instant>)
+    data class DateRangeTimestamp(
+        val dateRange: LocalDateRange,
+        val timestamp: Instant,
+    )
 
     private companion object {
-        val BEFORE_TODAY_PERIOD = 30.days
-        val AFTER_TODAY_PERIOD = 90.days
+
+        val BEFORE_TODAY_PERIOD = DatePeriod(days = 30)
+        val AFTER_TODAY_PERIOD = DatePeriod(days = 90)
+
         val DATE_CHANGE_DEBOUNCE_DURATION = 500.milliseconds
+
+        val PROXIMITY_THRESHOLD = DatePeriod(days = 7)
+
+        val DEFAULT_CACHE_DURATION = 5.days
     }
 }

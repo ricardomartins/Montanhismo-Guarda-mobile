@@ -38,7 +38,7 @@ import pt.rikmartins.clubemg.mobile.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
+fun CalendarScreen(navigateToDetails: (eventId: String) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -115,7 +115,7 @@ fun CalendarScreen(navigateToDetails: (objectId: Int) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, today)
+                Week(weekOfEvents, today) { navigateToDetails(it.id) }
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }

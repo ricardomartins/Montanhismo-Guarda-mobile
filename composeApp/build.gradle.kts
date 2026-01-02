@@ -23,11 +23,11 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.viewmodel.compose)
             implementation(libs.androidx.navigation.compose)
-            implementation(libs.androidx.constraintlayout.compose)
             implementation(libs.koin.androidx.compose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

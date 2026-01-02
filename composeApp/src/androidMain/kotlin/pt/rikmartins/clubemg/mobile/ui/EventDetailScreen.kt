@@ -1,5 +1,8 @@
 package pt.rikmartins.clubemg.mobile.ui
 
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -24,40 +28,43 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.data.MuseumObject
 import org.koin.androidx.compose.koinViewModel
-import pt.rikmartins.clubemg.mobile.ui.DetailViewModel
+import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.domain.entity.SimplifiedEvent
 
 @Composable
-fun EventDetailScreen(objectId: Int, navigateBack: () -> Unit) {
-    val viewModel: DetailViewModel = koinViewModel()
-    val obj by viewModel.museumObject.collectAsStateWithLifecycle()
+fun EventDetailScreen(eventId: String, navigateBack: () -> Unit) {
 
-    LaunchedEffect(objectId) {
-        viewModel.setId(objectId)
+    val viewModel: DetailViewModel = koinViewModel()
+
+//    val event by viewModel.event.collectAsStateWithLifecycle()
+
+    LaunchedEffect(eventId) {
+        viewModel.setEventId(eventId)
     }
 
-//    AnimatedContent(obj != null) { objectAvailable ->
+//    AnimatedContent(event != null) { objectAvailable ->
 //        if (objectAvailable) {
-//            EventDetails(obj!!, onBackClick = navigateBack)
+//            EventDetails(event!!, onBackClick = navigateBack)
 //        } else {
-//            EmptyScreenContent(Modifier.fillMaxSize())
+////            EmptyScreenContent(Modifier.fillMaxSize())
 //        }
 //    }
 }
 
 @Composable
 private fun EventDetails(
-    obj: MuseumObject,
+    obj: SimplifiedEvent,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -65,10 +72,13 @@ private fun EventDetails(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
-                title = {},
+                title = { Text("Merdas")},
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-//                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                        Icon(
+                            painter = painterResource(id = R.drawable.today_24),
+                            contentDescription = stringResource(R.string.jump_to_today),
+                        )
                     }
                 }
             )
@@ -80,47 +90,26 @@ private fun EventDetails(
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
         ) {
-            AsyncImage(
-                model = obj.primaryImageSmall,
-                contentDescription = obj.title,
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.LightGray)
-            )
-
-            SelectionContainer {
-                Column(Modifier.padding(12.dp)) {
-                    Text(obj.title, style = MaterialTheme.typography.headlineMedium)
-                    Spacer(Modifier.height(6.dp))
-//                    LabeledInfo(stringResource(R.string.label_artist), obj.artistDisplayName)
-//                    LabeledInfo(stringResource(R.string.label_date), obj.objectDate)
-//                    LabeledInfo(stringResource(R.string.label_dimensions), obj.dimensions)
-//                    LabeledInfo(stringResource(R.string.label_medium), obj.medium)
-//                    LabeledInfo(stringResource(R.string.label_department), obj.department)
-//                    LabeledInfo(stringResource(R.string.label_repository), obj.repository)
-//                    LabeledInfo(stringResource(R.string.label_credits), obj.creditLine)
-                }
-            }
+            HtmlContent(obj.url)
         }
     }
 }
 
 @Composable
-private fun LabeledInfo(
-    label: String,
-    data: String,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier.padding(vertical = 4.dp)) {
-        Spacer(Modifier.height(6.dp))
-        Text(
-            buildAnnotatedString {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append("$label: ")
-                }
-                append(data)
+fun HtmlContent(htmlSnippet: String) {
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                // Settings to ensure the view behaves correctly
+                settings.javaScriptEnabled = false
+
+                // Ensures links open within the WebView, not an external browser
+                webViewClient = WebViewClient()
             }
-        )
-    }
+        },
+        update = { webView ->
+            // loadDataWithBaseURL is better than loadData for handling special characters
+            webView.loadUrl(htmlSnippet)
+        }
+    )
 }

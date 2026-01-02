@@ -2,11 +2,6 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.take
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -40,16 +35,8 @@ class ObserveEventCalendar(
             .map { (monday, events) -> WeekOfEvents(monday, events) }
             .sortAndPad(currentDay)
     }
-        .onStart {
-            emitAll(
-                observeCalendarCurrentDay().map {
-                    (it..it.plus(30, DateTimeUnit.DAY)).toWeeks()
-                        .map { monday -> WeekOfEvents(monday, emptyList()) }
-                }.take(1)
-            )
-        }
 
-    private fun LocalDateRange.toWeeks(): List<LocalDate> = buildList {
+    fun LocalDateRange.toWeeks(): List<LocalDate> = buildList {
         val daysFromMonday = start.dayOfWeek.ordinal - DayOfWeek.MONDAY.ordinal
         var currentMonday = start.minus(daysFromMonday, DateTimeUnit.DAY)
 

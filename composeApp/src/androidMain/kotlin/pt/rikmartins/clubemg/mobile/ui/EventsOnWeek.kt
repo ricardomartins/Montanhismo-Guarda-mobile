@@ -1,5 +1,6 @@
 package pt.rikmartins.clubemg.mobile.ui
 
+import android.R.attr.onClick
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -178,6 +179,7 @@ interface EventRow {
 @Composable
 internal fun EventsOnWeek(
     weekOfEvents: WeekOfEvents,
+    onEventClick: (event: SimplifiedEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val monday = weekOfEvents.monday
@@ -250,47 +252,59 @@ internal fun EventsOnWeek(
             Row(Modifier.weight(1f)) {
                 when (eventRow) {
                     is EventRow.Span.Single.Weekdays -> {
-                        EventCard(eventRow.event, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Single.WeekdaysAndSaturday -> {
-                        EventCard(eventRow.event, modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.event,
+                            onEventClick,
+                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
+                        )
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
-                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event)
+                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event, onEventClick)
                     is EventRow.Span.Single.Saturday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.event, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Single.Weekend -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.event, modifier = Modifier.weight(FULL_DAY_WEIGHT + FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.event,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT + FULL_DAY_WEIGHT),
+                        )
                     }
 
                     is EventRow.Span.Single.Sunday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
-                        EventCard(eventRow.event, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Double.WeekdaysPlusSunday -> {
-                        EventCard(eventRow.startEvent, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.startEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.endEvent, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Double.WeekdaysAndSaturdayPlusSunday -> {
-                        EventCard(eventRow.startEvent, modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
-                        EventCard(eventRow.endEvent, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.startEvent,
+                            onEventClick,
+                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
+                        )
+                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Double.SaturdayPlusSunday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.startEvent, modifier = Modifier.weight(FULL_DAY_WEIGHT))
-                        EventCard(eventRow.endEvent, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.startEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                     }
                 }
             }
@@ -299,12 +313,17 @@ internal fun EventsOnWeek(
 }
 
 @Composable
-private fun EventCard(event: SimplifiedEvent, modifier: Modifier = Modifier) {
+private fun EventCard(
+    event: SimplifiedEvent,
+    onEventClick: (event: SimplifiedEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier
             .fillMaxHeight()
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        onClick = { onEventClick(event) },
     ) {
         var imageSize by remember { mutableStateOf(IntSize.Zero) }
         val selectedImage = remember(imageSize) {
