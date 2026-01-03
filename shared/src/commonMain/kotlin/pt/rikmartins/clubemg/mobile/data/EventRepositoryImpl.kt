@@ -1,17 +1,19 @@
 package pt.rikmartins.clubemg.mobile.data
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -24,11 +26,11 @@ import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class, FlowPreview::class)
+@OptIn(ExperimentalTime::class, FlowPreview::class, ExperimentalCoroutinesApi::class)
 class EventRepositoryImpl(
     private val externalScope: CoroutineScope,
     private val eventSource: EventSource,
@@ -49,9 +51,9 @@ class EventRepositoryImpl(
         externalScope.launch {
             combine(
                 expirationDate,
-                relevantDates.debounce(DATE_CHANGE_DEBOUNCE_DURATION)
+                relevantDates.sample(DATE_CHANGE_SAMPLING_DURATION)
             ) { expiration, dates -> expiration to dates }
-                .collectLatest { (expiration, dates) ->
+                .collect { (expiration, dates) ->
                     refreshStaleEvents(dates, expiration)
                 }
         }
@@ -74,22 +76,34 @@ class EventRepositoryImpl(
     override val events: Flow<List<CalendarEvent>>
         get() = eventStorage.events
 
-    private suspend fun refreshStaleEvents(relevantDates: LocalDateRange, expirationDate: Instant) = coroutineScope {
+    override val refreshingRanges = MutableStateFlow(emptySet<LocalDateRange>())
+
+    private suspend fun refreshStaleEvents(relevantDates: LocalDateRange, expirationDate: Instant) {
         eventStorage.getDateRangeTimestampsOf(relevantDates)
             .fillGaps(relevantDates)
             .filter { rangeTimestamp -> rangeTimestamp.timestamp < expirationDate }
             .map { it.dateRange.intersectWith(relevantDates) }
             .mergeCloseEnoughRanges()
-            .map {
-                async {
-                    val events = eventSource.getEvents(it)
-                    eventStorage.saveEventsAndRanges(events, it)
+            .asFlow()
+            .flatMapMerge(concurrency = 3) { range ->
+            refreshingRanges.update { it.plusElement(range) }
+            flow {
+                try {
+                    emit(refreshRange(range))
+                } finally {
+                    refreshingRanges.update { it.minusElement(range) }
                 }
-            }.awaitAll()
+            }
+        }.collect()
+    }
+
+    private suspend fun refreshRange(range: LocalDateRange) {
+        val events = eventSource.getEvents(range)
+        eventStorage.saveEventsAndRanges(events, range)
     }
 
     private fun List<DateRangeTimestamp>.fillGaps(relevantDates: LocalDateRange): List<DateRangeTimestamp> {
-       val sortedRanges = sortedBy { it.dateRange.start }
+        val sortedRanges = sortedBy { it.dateRange.start }
 
         val filledList = mutableListOf<DateRangeTimestamp>()
 
@@ -116,7 +130,6 @@ class EventRepositoryImpl(
             }
         }
 
-        // 3. Check for a trailing gap after the last existing range
         if (nextExpectedStart <= relevantDates.endInclusive) {
             filledList.add(
                 DateRangeTimestamp(nextExpectedStart..relevantDates.endInclusive, Instant.DISTANT_PAST)
@@ -174,7 +187,7 @@ class EventRepositoryImpl(
         val BEFORE_TODAY_PERIOD = DatePeriod(days = 30)
         val AFTER_TODAY_PERIOD = DatePeriod(days = 90)
 
-        val DATE_CHANGE_DEBOUNCE_DURATION = 500.milliseconds
+        val DATE_CHANGE_SAMPLING_DURATION = 1.seconds
 
         val PROXIMITY_THRESHOLD = DatePeriod(days = 7)
 

@@ -6,14 +6,18 @@ import kotlinx.datetime.TimeZone
 import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
-import kotlin.time.ExperimentalTime
+
+data class Model(
+    val weeksOfEvents: List<WeekOfEvents>,
+    val today: LocalDate?,
+    val isRefreshing: Boolean,
+)
 
 data class WeekOfEvents(
     val monday: LocalDate,
     val events: List<SimplifiedEvent> = emptyList(),
 )
 
-@OptIn(ExperimentalTime::class)
 class SimplifiedEvent(
     private val calendarEvent: CalendarEvent,
     timeZone: TimeZone,

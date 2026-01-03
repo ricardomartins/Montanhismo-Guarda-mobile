@@ -2,6 +2,7 @@ package pt.rikmartins.clubemg.mobile.domain.gateway
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -12,6 +13,7 @@ interface EventRepository {
     val events: Flow<List<CalendarEvent>>
     val eventsTimezone: Flow<TimeZone>
     suspend fun setCacheExpirationDate(expirationDate: Instant)
+    val refreshingRanges: Flow<Set<LocalDateRange>>
 }
 
 @OptIn(ExperimentalTime::class)
