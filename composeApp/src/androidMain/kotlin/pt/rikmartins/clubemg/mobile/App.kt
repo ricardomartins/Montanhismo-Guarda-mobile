@@ -2,6 +2,7 @@ package pt.rikmartins.clubemg.mobile
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -22,10 +23,13 @@ fun App() {
     AppTheme {
         Surface {
             val navController = rememberNavController()
+            val uriHandler = LocalUriHandler.current
+
             NavHost(navController = navController, startDestination = CalendarDestination) {
                 composable<CalendarDestination> {
-                    CalendarScreen(navigateToDetails = { objectId ->
+                    CalendarScreen(navigateToDetails = { event ->
 //                        navController.navigate(EventDetailDestination(objectId))
+                        uriHandler.openUri(event.url)
                     })
                 }
                 composable<EventDetailDestination> { backStackEntry ->

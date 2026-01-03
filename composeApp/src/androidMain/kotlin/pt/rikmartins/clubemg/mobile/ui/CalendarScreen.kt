@@ -40,11 +40,12 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(navigateToDetails: (eventId: String) -> Unit) {
+fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -126,7 +127,7 @@ fun CalendarScreen(navigateToDetails: (eventId: String) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, today) { navigateToDetails(it.id) }
+                Week(weekOfEvents, today) { navigateToDetails(it.calendarEvent) }
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }

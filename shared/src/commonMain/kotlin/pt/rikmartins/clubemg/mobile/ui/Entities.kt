@@ -19,7 +19,7 @@ data class WeekOfEvents(
 )
 
 class SimplifiedEvent(
-    private val calendarEvent: CalendarEvent,
+    val calendarEvent: CalendarEvent,
     timeZone: TimeZone,
 ) {
     val id: String
