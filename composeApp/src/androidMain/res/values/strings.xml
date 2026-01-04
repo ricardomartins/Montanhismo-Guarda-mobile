@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Guarda Mountaineering</string>
+    <string name="app_name">Montanhismo Guarda</string>
 
-    <string name="back">Back</string>
+    <string name="back">Voltar</string>
 
-    <string name="title_calendar">Activity Calendar</string>
-    <string name="jump_to_today">Jump to today</string>
+    <string name="title_calendar">Calendário de Actividades</string>
+    <string name="jump_to_today">Pular para hoje</string>
 
 </resources>
