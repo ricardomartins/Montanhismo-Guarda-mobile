@@ -2,7 +2,6 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.base
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /**
@@ -12,7 +11,7 @@ import kotlinx.coroutines.withContext
  * @param R The type of the result (Output). Use [Unit] if no output is returned.
  */
 abstract class UseCase<in P, out R>(
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
 
     protected abstract suspend fun execute(params: P): R
