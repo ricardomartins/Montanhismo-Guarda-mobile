@@ -12,7 +12,7 @@ interface EventRepository {
     suspend fun requestDate(date: LocalDate)
     val events: Flow<List<CalendarEvent>>
     val eventsTimezone: Flow<TimeZone>
-    suspend fun setCacheExpirationDate(expirationDate: Instant)
+    suspend fun refreshCache()
     val refreshingRanges: Flow<Set<LocalDateRange>>
 }
 

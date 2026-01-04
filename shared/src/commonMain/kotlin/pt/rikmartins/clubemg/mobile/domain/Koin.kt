@@ -7,6 +7,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshCache
 
 internal val domainModule = module {
     single { RequestEventsForDate(get()) }
@@ -15,4 +16,5 @@ internal val domainModule = module {
     single { ObserveCalendarCurrentDay(get()) }
     single { ObserveCalendarTimeZone(get()) }
     single { ObserveRefreshingRanges(get()) }
+    single { RefreshCache(get()) }
 }

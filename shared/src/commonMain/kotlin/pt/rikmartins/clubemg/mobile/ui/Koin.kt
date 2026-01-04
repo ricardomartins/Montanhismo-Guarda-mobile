@@ -9,6 +9,7 @@ internal val uiModule = module {
         observeAllEvents = get(),
         observeCalendarTimeZone = get(),
         observeRefreshingRanges = get(),
+        refreshCache = get(),
     ) }
 //    factory { DetailViewModel(get()) }
 }

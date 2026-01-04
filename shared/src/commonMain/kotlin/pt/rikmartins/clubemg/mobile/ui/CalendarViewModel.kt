@@ -24,6 +24,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.RequestEventsForDate
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshCache
 import pt.rikmartins.clubemg.mobile.ui.WeekUtils.getMondaysInRange
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
@@ -35,6 +36,7 @@ class CalendarViewModel(
     observeAllEvents: ObserveAllEvents,
     observeCalendarTimeZone: ObserveCalendarTimeZone,
     observeRefreshingRanges: ObserveRefreshingRanges,
+    private val refreshCache: RefreshCache,
 ) : ViewModel() {
 
     private val relevantDates = MutableStateFlow<LocalDateRange?>(null)
@@ -119,5 +121,9 @@ class CalendarViewModel(
                     (newStart ?: relevantDatesValue.start)..(newEnd ?: relevantDatesValue.endInclusive)
             }
         }
+    }
+
+    fun forceSync() {
+        viewModelScope.launch { refreshCache(Unit) }
     }
 }

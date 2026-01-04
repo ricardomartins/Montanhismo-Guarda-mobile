@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.sample
@@ -50,7 +51,7 @@ class EventRepositoryImpl(
     init {
         externalScope.launch {
             combine(
-                expirationDate,
+                expirationDate.debounce(EXPIRATION_DATE_DEBOUNCE_DURATION),
                 relevantDates.sample(DATE_CHANGE_SAMPLING_DURATION)
             ) { expiration, dates -> expiration to dates }
                 .collect { (expiration, dates) ->
@@ -66,8 +67,8 @@ class EventRepositoryImpl(
         }
     }
 
-    override suspend fun setCacheExpirationDate(expirationDate: Instant) {
-        this.expirationDate.value = expirationDate
+    override suspend fun refreshCache() {
+        this.expirationDate.update { Clock.System.now() }
     }
 
     override val eventsTimezone: Flow<TimeZone>
@@ -188,6 +189,7 @@ class EventRepositoryImpl(
         val AFTER_TODAY_PERIOD = DatePeriod(days = 90)
 
         val DATE_CHANGE_SAMPLING_DURATION = 1.seconds
+        val EXPIRATION_DATE_DEBOUNCE_DURATION = 1.seconds
 
         val PROXIMITY_THRESHOLD = DatePeriod(days = 7)
 
