@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -331,15 +332,16 @@ private fun EventCard(
             }?.url
         }
 
-        AsyncImage(
+        if (selectedImage != null) AsyncImage(
             model = selectedImage,
             contentDescription = "${event.title} cover image", // TODO: Localize
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(3f)
+                .weight(1f)
                 .onSizeChanged { imageSize = it }
                 .clip(MaterialTheme.shapes.medium),
             contentScale = ContentScale.Crop,
+            alignment = Alignment.Center,
             placeholder = painterResource(id = R.drawable.fallback),
             error = painterResource(id = R.drawable.fallback),
             fallback = painterResource(id = R.drawable.fallback),
@@ -347,8 +349,8 @@ private fun EventCard(
         Text(
             text = event.title,
             modifier = Modifier
-                .padding(8.dp)
-                .weight(2f),
+                .fillMaxWidth()
+                .padding(8.dp),
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Ellipsis,
         )
