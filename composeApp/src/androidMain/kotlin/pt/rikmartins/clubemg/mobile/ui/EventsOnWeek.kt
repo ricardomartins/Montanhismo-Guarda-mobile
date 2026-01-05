@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
@@ -26,7 +27,6 @@ import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
 import pt.rikmartins.clubemg.mobile.thisWeeksSunday
-
 
 interface EventRow {
 
@@ -321,7 +321,7 @@ private fun EventCard(
         modifier = modifier
             .fillMaxHeight()
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         onClick = { onEventClick(event) },
     ) {
         var imageSize by remember { mutableStateOf(IntSize.Zero) }
@@ -337,7 +337,8 @@ private fun EventCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(3f)
-                .onSizeChanged { imageSize = it },
+                .onSizeChanged { imageSize = it }
+                .clip(MaterialTheme.shapes.medium),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.fallback),
             error = painterResource(id = R.drawable.fallback),
