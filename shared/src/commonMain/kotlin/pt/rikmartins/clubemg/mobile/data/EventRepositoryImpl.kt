@@ -33,7 +33,7 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class, FlowPreview::class, ExperimentalCoroutinesApi::class)
 class EventRepositoryImpl(
-    private val externalScope: CoroutineScope,
+    externalScope: CoroutineScope,
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
     private val bootTime: Instant = Clock.System.now()
@@ -60,11 +60,8 @@ class EventRepositoryImpl(
         }
     }
 
-    override suspend fun requestDate(date: LocalDate) {
-        when {
-            date < relevantDates.value.start -> relevantDates.value = date..relevantDates.value.endInclusive
-            date > relevantDates.value.endInclusive -> relevantDates.value = relevantDates.value.start..date
-        }
+    override suspend fun setRelevantDatePeriod(period: LocalDateRange) {
+        relevantDates.value = period
     }
 
     override suspend fun refreshCache() {

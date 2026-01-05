@@ -20,7 +20,7 @@ import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.RequestEventsForDate
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
@@ -31,7 +31,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class, FlowPreview::class)
 class CalendarViewModel(
-    private val requestEventsForDate: RequestEventsForDate,
+    private val setRelevantDatePeriod: SetRelevantDatePeriod,
     observeCalendarCurrentDay: ObserveCalendarCurrentDay,
     observeAllEvents: ObserveAllEvents,
     observeCalendarTimeZone: ObserveCalendarTimeZone,
@@ -39,14 +39,15 @@ class CalendarViewModel(
     private val refreshCache: RefreshCache,
 ) : ViewModel() {
 
-    private val relevantDates = MutableStateFlow<LocalDateRange?>(null)
+    private val visibleDates = MutableStateFlow<LocalDateRange?>(null)
 
     init {
         viewModelScope.launch {
-            relevantDates.collectLatest { relevantDates ->
-                relevantDates?.let {
-                    requestEventsForDate(it.start.minus(1, DateTimeUnit.MONTH))
-                    requestEventsForDate(it.endInclusive.plus(3, DateTimeUnit.MONTH))
+            visibleDates.collectLatest { visibleDates ->
+                visibleDates?.run {
+                    setRelevantDatePeriod(
+                        start.minus(1, DateTimeUnit.MONTH)..endInclusive.plus(3, DateTimeUnit.MONTH)
+                    )
                 }
             }
         }
@@ -55,7 +56,7 @@ class CalendarViewModel(
     private val calendarCurrentDay = observeCalendarCurrentDay()
 
     val model = combine(
-        combine(relevantDates.filterNotNull().sample(500), calendarCurrentDay) { weekLimits, currentDay ->
+        combine(visibleDates.filterNotNull().sample(500), calendarCurrentDay) { weekLimits, currentDay ->
             val newStart = maxOf(
                 weekLimits.start.minus(6, DateTimeUnit.MONTH),
                 currentDay.minus(2, DateTimeUnit.YEAR)
@@ -69,7 +70,7 @@ class CalendarViewModel(
         },
         observeAllEvents(),
         observeCalendarTimeZone(),
-        observeRefreshingRanges().map{ it.isNotEmpty() }.debounce(250.milliseconds),
+        observeRefreshingRanges().map { it.isNotEmpty() }.debounce(250.milliseconds),
     ) { (weekLimits, currentDay), events, calendarTimeZone, isRefreshing ->
         val mondays = getMondaysInRange(weekLimits)
         val simplifiedEvents = events.map { SimplifiedEvent(it, calendarTimeZone) }
@@ -89,7 +90,7 @@ class CalendarViewModel(
             }
             mondays.forEach { getOrPut(it) { mutableListOf() } }
         }
-            .map { (monday, events) -> WeekOfEvents(monday, events, ) }
+            .map { (monday, events) -> WeekOfEvents(monday, events) }
             .sortedBy { it.monday }
             .let { Model(it, currentDay, isRefreshing) }
     }.onStart {
@@ -109,15 +110,15 @@ class CalendarViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null, true))
 
     fun notifyViewedDates(dateRange: LocalDateRange) {
-        val relevantDatesValue = relevantDates.value
+        val relevantDatesValue = visibleDates.value
         if (relevantDatesValue == null) {
-            relevantDates.value = dateRange
+            visibleDates.value = dateRange
         } else {
             val newStart = dateRange.start.takeIf { dateRange.start < relevantDatesValue.start }
             val newEnd = dateRange.endInclusive.takeIf { dateRange.endInclusive > relevantDatesValue.endInclusive }
 
             if (newStart != null || newEnd != null) {
-                relevantDates.value =
+                visibleDates.value =
                     (newStart ?: relevantDatesValue.start)..(newEnd ?: relevantDatesValue.endInclusive)
             }
         }
