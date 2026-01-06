@@ -109,8 +109,9 @@ private fun WeekRow(
 @Composable
 private fun MonthLabelRow(monday: LocalDate, sunday: LocalDate) {
     Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-        val (previousMonthSurface, _) = LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(monday)
-        val (currentMonthSurface, _) = LocalCustomColorsPalette.current.getSurfaceAndOnSurfaceOfDate(sunday)
+        val getSurfaceAndOnSurfaceOfDate = LocalCustomColorsPalette.current::getSurfaceAndOnSurfaceOfDate
+        val (previousMonthSurface, _) = getSurfaceAndOnSurfaceOfDate(monday)
+        val (currentMonthSurface, _) = getSurfaceAndOnSurfaceOfDate(sunday)
 
         val monthLabelWeight = when (sunday.day) {
             1 -> FULL_DAY_WEIGHT
