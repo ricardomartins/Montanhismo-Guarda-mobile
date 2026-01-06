@@ -82,6 +82,7 @@ class EventRepositoryImpl(
             .filter { rangeTimestamp -> rangeTimestamp.timestamp < expirationDate }
             .map { it.dateRange.intersectWith(relevantDates) }
             .mergeCloseEnoughRanges()
+            .filter { it != LocalDateRange.EMPTY }
             .asFlow()
             .flatMapMerge(concurrency = 3) { range ->
             refreshingRanges.update { it.plusElement(range) }

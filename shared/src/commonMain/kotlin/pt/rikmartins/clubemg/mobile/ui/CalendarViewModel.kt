@@ -110,18 +110,7 @@ class CalendarViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null, true))
 
     fun notifyViewedDates(dateRange: LocalDateRange) {
-        val relevantDatesValue = visibleDates.value
-        if (relevantDatesValue == null) {
-            visibleDates.value = dateRange
-        } else {
-            val newStart = dateRange.start.takeIf { dateRange.start < relevantDatesValue.start }
-            val newEnd = dateRange.endInclusive.takeIf { dateRange.endInclusive > relevantDatesValue.endInclusive }
-
-            if (newStart != null || newEnd != null) {
-                visibleDates.value =
-                    (newStart ?: relevantDatesValue.start)..(newEnd ?: relevantDatesValue.endInclusive)
-            }
-        }
+        visibleDates.value = dateRange
     }
 
     fun forceSync() {
