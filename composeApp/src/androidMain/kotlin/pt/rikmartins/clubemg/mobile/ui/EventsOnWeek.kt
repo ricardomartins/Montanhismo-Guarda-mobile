@@ -1,5 +1,6 @@
 package pt.rikmartins.clubemg.mobile.ui
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,14 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
 import pt.rikmartins.clubemg.mobile.thisWeeksSunday
+import java.time.format.DateTimeFormatter
 
 interface EventRow {
 
@@ -316,7 +320,7 @@ internal fun EventsOnWeek(
 private fun EventCard(
     event: SimplifiedEvent,
     onEventClick: (event: SimplifiedEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier
@@ -350,8 +354,31 @@ private fun EventCard(
             text = event.title,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(start = 8.dp, end = 8.dp, top = 8.dp),
             style = MaterialTheme.typography.bodyMedium,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        val locale = LocalConfiguration.current.locales[0]
+        val formatter = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "LLL-d"))
+
+        val dateText = with(event.range) {
+            if (size > 1) {
+                val startDate = start.toJavaLocalDate().format(formatter)
+                val endDate = endInclusive.toJavaLocalDate().format(formatter)
+
+                "$startDate - $endDate"
+            } else {
+                start.toJavaLocalDate().format(formatter)
+            }
+        }
+
+        Text(
+            text = dateText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
             overflow = TextOverflow.Ellipsis,
         )
     }
