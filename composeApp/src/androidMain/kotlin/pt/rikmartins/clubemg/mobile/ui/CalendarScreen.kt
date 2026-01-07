@@ -61,6 +61,8 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    var selectedEvent by remember { mutableStateOf<SimplifiedEvent?>(null) }
+
     LaunchedEffect(listState, todayMonday) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collect { visibleInfo ->
             val firstVisibleDate = (visibleInfo.firstOrNull()?.key as? Long)
@@ -100,7 +102,11 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
                     ),
                     scrollBehavior = scrollBehavior,
                 )
-                AnimatedVisibility(visible = model.isRefreshing, enter = expandVertically(), exit = shrinkVertically()) {
+                AnimatedVisibility(
+                    visible = model.isRefreshing,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
@@ -136,9 +142,16 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, today) { navigateToDetails(it.calendarEvent) }
+                Week(weekOfEvents, today) { selectedEvent = it }
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }
+        if (selectedEvent != null) EventActionsDialog(
+            event = selectedEvent!!,
+            navigateToDetails = {
+                navigateToDetails(it)
+                selectedEvent = null
+            },
+        ) { selectedEvent = null }
     }
 }

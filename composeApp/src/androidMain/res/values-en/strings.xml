@@ -7,5 +7,6 @@
     <string name="title_calendar">Activity Calendar</string>
     <string name="jump_to_today">Jump to today</string>
     <string name="force_sync">Force synchronization</string>
+    <string name="visit_page">Visit page</string>
 
 </resources>
