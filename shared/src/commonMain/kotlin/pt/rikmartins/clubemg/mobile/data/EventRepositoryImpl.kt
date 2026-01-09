@@ -2,8 +2,7 @@ package pt.rikmartins.clubemg.mobile.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
-import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +21,14 @@ import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshCache
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
@@ -37,7 +44,9 @@ class EventRepositoryImpl(
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
     private val bootTime: Instant = Clock.System.now()
-) : EventRepository {
+) : ObserveAllEvents.Gateway, ObserveCalendarCurrentDay.Gateway, ObserveCalendarTimeZone.Gateway,
+    ObserveRefreshingRanges.Gateway, RefreshCache.Gateway, SetRelevantDatePeriod.Gateway,
+    SynchronizeFavouriteEvents.EventsProvider {
 
     private val expirationDate: MutableStateFlow<Instant> = MutableStateFlow(bootTime.minus(DEFAULT_CACHE_DURATION))
 
@@ -85,26 +94,26 @@ class EventRepositoryImpl(
             .filter { it != LocalDateRange.EMPTY }
             .asFlow()
             .flatMapMerge(concurrency = 3) { range ->
-            refreshingRanges.update { it.plusElement(range) }
-            flow {
-                try {
-                    emit(refreshRange(range))
-                } finally {
-                    refreshingRanges.update { it.minusElement(range) }
+                refreshingRanges.update { it.plusElement(range) }
+                flow {
+                    try {
+                        emit(refreshRange(range))
+                    } finally {
+                        refreshingRanges.update { it.minusElement(range) }
+                    }
                 }
-            }
-        }.collect()
+            }.collect()
     }
 
     private suspend fun refreshRange(range: LocalDateRange) {
-        val events = eventSource.getEvents(range)
+        val events = eventSource.getEventsInRange(range)
         eventStorage.saveEventsAndRanges(events, range)
     }
 
-    private fun List<DateRangeTimestamp>.fillGaps(relevantDates: LocalDateRange): List<DateRangeTimestamp> {
+    private fun Collection<DateRangeTimestamp>.fillGaps(relevantDates: LocalDateRange): Collection<DateRangeTimestamp> {
         val sortedRanges = sortedBy { it.dateRange.start }
 
-        val filledList = mutableListOf<DateRangeTimestamp>()
+        val filledList = mutableSetOf<DateRangeTimestamp>()
 
         var nextExpectedStart = relevantDates.start
 
@@ -154,10 +163,17 @@ class EventRepositoryImpl(
         return if (start <= endInclusive) start..endInclusive else LocalDateRange.EMPTY
     }
 
+    override suspend fun refreshEventsForDiff(eventIds: Collection<String>): Collection<EventDiff> {
+        val freshCalendarEvents = eventSource.getEventsById(eventIds)
+        return eventStorage.saveEventsForDiff(freshCalendarEvents)
+    }
+
     interface EventSource {
         suspend fun getTimeZone(): TimeZone
 
-        suspend fun getEvents(dateRange: LocalDateRange): List<CalendarEvent>
+        suspend fun getEventsInRange(dateRange: LocalDateRange): List<CalendarEvent>
+
+        suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent>
     }
 
     interface EventStorage {
@@ -167,13 +183,15 @@ class EventRepositoryImpl(
 
         suspend fun setTimeZone(timezone: TimeZone)
 
-        suspend fun getDateRangeTimestampsOf(dateRange: LocalDateRange): List<DateRangeTimestamp>
+        suspend fun getDateRangeTimestampsOf(dateRange: LocalDateRange): Collection<DateRangeTimestamp>
 
         suspend fun saveEventsAndRanges(
             events: List<CalendarEvent>,
             dateRange: LocalDateRange,
             timestamp: Instant = Clock.System.now()
         )
+
+        fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff>
     }
 
     data class DateRangeTimestamp(

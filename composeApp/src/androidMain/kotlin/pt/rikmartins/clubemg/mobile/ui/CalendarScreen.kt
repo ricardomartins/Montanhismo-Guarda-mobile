@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 
 @OptIn(ExperimentalMaterial3Api::class)

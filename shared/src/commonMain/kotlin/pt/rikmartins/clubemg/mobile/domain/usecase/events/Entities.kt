@@ -1,0 +1,32 @@
+package pt.rikmartins.clubemg.mobile.domain.usecase.events
+
+import kotlin.time.Instant
+
+interface CalendarEvent {
+    val id: String
+    val creationDate: Instant
+    val modifiedDate: Instant
+    val title: String
+    val url: String
+    val startDate: Instant
+    val endDate: Instant
+    val enrollmentUrl: String
+    val images: List<EventImage>
+}
+
+interface EventImage {
+    val id: String?
+    val url: String
+    val width: Int
+    val height: Int
+    val fileSize: Int
+}
+
+interface EventDiff {
+    val id: String
+    val modifiedDate: Pair<Instant, Instant>
+    val title: Pair<String, String>?
+    val startDate: Pair<Instant, Instant>?
+    val endDate: Pair<Instant, Instant>?
+    val enrollmentUrl: Pair<String, String>?
+}

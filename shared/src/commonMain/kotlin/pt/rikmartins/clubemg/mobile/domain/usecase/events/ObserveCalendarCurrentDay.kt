@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
-import pt.rikmartins.clubemg.mobile.domain.gateway.EventRepository
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -15,7 +15,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 class ObserveCalendarCurrentDay(
-    private val repository: EventRepository,
+    private val gateway: Gateway,
     private val clock: Clock = Clock.System,
 ) : WatchCase.Supplier<LocalDate>() {
 
@@ -25,6 +25,10 @@ class ObserveCalendarCurrentDay(
             delay(5.minutes)
         }
     }
-        .combine(repository.eventsTimezone) { _, timeZone -> clock.todayIn(timeZone) }
+        .combine(gateway.eventsTimezone) { _, timeZone -> clock.todayIn(timeZone) }
         .distinctUntilChanged()
+
+    interface Gateway {
+        val eventsTimezone: Flow<TimeZone>
+    }
 }

@@ -3,8 +3,8 @@ package pt.rikmartins.clubemg.mobile.ui
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
-import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
 data class Model(
@@ -28,8 +28,6 @@ class SimplifiedEvent(
         get() = calendarEvent.title
     val url: String
         get() = calendarEvent.url
-    val description: String
-        get() = calendarEvent.description
     val range: LocalDateRange = with(calendarEvent) {
         startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
     }

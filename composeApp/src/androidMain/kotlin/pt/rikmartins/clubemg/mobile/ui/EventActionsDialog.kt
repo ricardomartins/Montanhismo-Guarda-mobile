@@ -27,7 +27,7 @@ import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import java.time.format.DateTimeFormatter
 
 @Composable

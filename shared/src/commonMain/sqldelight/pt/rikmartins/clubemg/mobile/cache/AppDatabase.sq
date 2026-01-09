@@ -1,6 +1,5 @@
 import kotlin.time.Instant;
 import kotlinx.datetime.LocalDate;
-import kotlinx.datetime.TimeZone;
 
 PRAGMA recursive_triggers = 1;
 
@@ -44,9 +43,9 @@ CREATE TABLE CalendarEvent (
     modifiedDate INTEGER AS Instant NOT NULL,
     title TEXT NOT NULL,
     url TEXT NOT NULL,
-    description TEXT NOT NULL,
     startDate INTEGER AS Instant NOT NULL,
-    endDate INTEGER AS Instant NOT NULL
+    endDate INTEGER AS Instant NOT NULL,
+    enrollmentUrl TEXT NOT NULL
 );
 
 selectEventsInRange:
@@ -54,6 +53,11 @@ SELECT *
 FROM CalendarEvent
 WHERE endDate >= :rangeStart
 AND startDate <= :rangeEnd;
+
+selectEventsById:
+SELECT *
+FROM CalendarEvent
+WHERE CalendarEvent.id IN ?;
 
 replaceEvent:
 INSERT OR REPLACE INTO CalendarEvent

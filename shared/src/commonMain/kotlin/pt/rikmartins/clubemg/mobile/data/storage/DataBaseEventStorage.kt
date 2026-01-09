@@ -20,8 +20,9 @@ import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
-import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.collections.component1
@@ -157,6 +158,43 @@ class DataBaseEventStorage(
         )
     }
 
+    override fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff> = buildSet {
+        queries.transaction {
+            val existingEvents = queries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
+
+            val eventsToUpsert = calendarEvents.toMutableList()
+
+            existingEvents.forEach { existingEvent ->
+                val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
+
+
+
+                if (correspondingNewEvent != null) {
+                    if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate)
+                        eventsToUpsert.remove(correspondingNewEvent)
+                    else add(existingEvent diffWith correspondingNewEvent)
+                }
+            }
+
+            queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
+            eventsToUpsert.forEach { calendarEvent ->
+                queries.replaceEvent(calendarEvent.asCacheCalendarEvent())
+                calendarEvent.images.forEach {
+                    queries.replaceEventImage(it.asCacheEventImage(calendarEvent.id))
+                }
+            }
+        }
+    }
+
+    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent): EventDiff = StorageEventDiff(
+            id = id,
+            modifiedDate = modifiedDate to other.modifiedDate,
+            title = if (title == other.title) null else title to other.title,
+            startDate = if (startDate == other.startDate) null else startDate to other.startDate,
+            endDate = if (endDate == other.endDate) null else endDate to other.endDate,
+            enrollmentUrl = if (enrollmentUrl == other.enrollmentUrl) null else enrollmentUrl to other.enrollmentUrl,
+        )
+
     private data class StorageEventImage(
         val calendarEventId: String,
         override val id: String?,
@@ -172,12 +210,20 @@ class DataBaseEventStorage(
         override val modifiedDate: Instant,
         override val title: String,
         override val url: String,
-        override val description: String,
-        override val allDay: Boolean,
         override val startDate: Instant,
         override val endDate: Instant,
+        override val enrollmentUrl: String,
         override val images: List<StorageEventImage>,
     ) : CalendarEvent
+
+    private data class StorageEventDiff(
+        override val id: String,
+        override val modifiedDate: Pair<Instant, Instant>,
+        override val title: Pair<String, String>?,
+        override val startDate: Pair<Instant, Instant>?,
+        override val endDate: Pair<Instant, Instant>?,
+        override val enrollmentUrl: Pair<String, String>?,
+    ) : EventDiff
 
     private fun CalendarEvent.asCacheCalendarEvent(): CacheCalendarEvent = CacheCalendarEvent(
         id = id,
@@ -185,9 +231,9 @@ class DataBaseEventStorage(
         modifiedDate = modifiedDate,
         title = title,
         url = url,
-        description = description,
         startDate = startDate,
         endDate = endDate,
+        enrollmentUrl = enrollmentUrl,
     )
 
     private fun EventImage.asCacheEventImage(eventId: String): CacheEventImage = CacheEventImage(
@@ -209,10 +255,9 @@ class DataBaseEventStorage(
                 modifiedDate = calendarEvent.modifiedDate,
                 title = calendarEvent.title,
                 url = calendarEvent.url,
-                description = calendarEvent.description,
-                allDay = false, // FIXME
                 startDate = calendarEvent.startDate,
                 endDate = calendarEvent.endDate,
+                enrollmentUrl = calendarEvent.enrollmentUrl,
                 images = rowList.mapNotNull { eventImage ->
                     if (eventImage.url_ != null &&
                         eventImage.width != null &&

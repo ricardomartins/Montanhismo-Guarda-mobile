@@ -1,7 +1,8 @@
 package pt.rikmartins.clubemg.mobile.data.service.event
 
+import co.touchlab.kermit.Logger
 import com.fleeksoft.ksoup.Ksoup
-import pt.rikmartins.clubemg.mobile.domain.gateway.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -12,6 +13,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.supervisorScope
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.LocalDateTime
@@ -32,20 +34,18 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
-import pt.rikmartins.clubemg.mobile.domain.gateway.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.orEmpty
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 class EventCalendarApi(
     private val client: HttpClient,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : EventRepositoryImpl.EventSource {
 
-    override suspend fun getEvents(dateRange: LocalDateRange): List<CalendarEvent> = coroutineScope {
+    override suspend fun getEventsInRange(dateRange: LocalDateRange): List<CalendarEvent> = coroutineScope {
         val startDateAsParam = dateRange.start.atTime(0, 0).asEventDate()
         val endDateAsParam = dateRange.endInclusive.atTime(23, 59, 59, 999_999_999).asEventDate()
 
@@ -66,7 +66,24 @@ class EventCalendarApi(
                 ?.let { addAll(it) }
         }.flatMap { it.events }.distinctBy { it.id }
 
-        events.map { event -> event.asApiCalendarEvent()}
+        events.map { event -> event.asApiCalendarEvent() }
+    }
+
+    override suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent> = supervisorScope {
+        eventsIds.mapNotNull { it.toIntOrNull() }
+            .map { eventId ->
+                async {
+                    try {
+                        client.get(EventsResource.Id(id = eventId)).body<EventItem>()
+                            .asApiCalendarEvent()
+                    } catch (e: Exception) {
+                        Logger.e("Failed to fetch or map event with ID: $eventId", e)
+                        null
+                    }
+                }
+            }
+            .awaitAll()
+            .filterNotNull()
     }
 
     override suspend fun getTimeZone(): TimeZone {
@@ -82,10 +99,9 @@ class EventCalendarApi(
             modifiedDate = modified.asLocalDateTime().toInstant(timeZone),
             url = url,
             title = Ksoup.clean(title),
-            description = description,
-            allDay = allDay,
             startDate = startDate.asLocalDateTime().toInstant(timeZone),
             endDate = endDate.asLocalDateTime().toInstant(timeZone),
+            enrollmentUrl = website,
             images = image?.run {
                 buildList {
                     add(this@run.asEventImage(null))
@@ -118,10 +134,9 @@ class EventCalendarApi(
         override val modifiedDate: Instant,
         override val title: String,
         override val url: String,
-        override val description: String,
-        override val allDay: Boolean,
         override val startDate: Instant,
         override val endDate: Instant,
+        override val enrollmentUrl: String,
         override val images: List<ApiEventImage>,
     ) : CalendarEvent
 
@@ -131,7 +146,7 @@ class EventCalendarApi(
         override val width: Int,
         override val height: Int,
         override val fileSize: Int,
-    ): EventImage
+    ) : EventImage
 
     @Serializable
     @Resource("/events")
@@ -140,6 +155,7 @@ class EventCalendarApi(
         @SerialName("end_date") val endDate: String? = null,
         @SerialName("per_page") val perPage: Int? = PAGE_SIZE,
         val page: Int? = null,
+        @SerialName("include") val includeCsv: String? = null,
     ) {
         @Serializable
         @Resource("{id}")
@@ -189,6 +205,7 @@ class EventCalendarApi(
         @Resource("{id}")
         data class Id(val parent: TagsResource = TagsResource(), val id: Int)
     }
+
     @Serializable
     private data class EventItem(
         val id: Int, // The event ID
@@ -196,8 +213,6 @@ class EventCalendarApi(
         val modified: String, // The event last modified date in the site's timezone
         val url: String, // The URL for the event page
         val title: String, // The event name
-        val description: String, // The long description of the event
-        @SerialName("all_day") val allDay: Boolean, // Whether this event lasts all day or not
         @SerialName("start_date") val startDate: String, // The event start date in the site's timezone
         @SerialName("end_date") val endDate: String, // The event end date in the event or site time zone
         val timezone: String, // The event time zone string
@@ -229,7 +244,7 @@ class EventCalendarApi(
         override val height: Int,
         @SerialName("filesize") override val fileSize: Int,
         override val url: String
-    ): ImageStructure
+    ) : ImageStructure
 
     @Serializable
     private data class EventResponse(
