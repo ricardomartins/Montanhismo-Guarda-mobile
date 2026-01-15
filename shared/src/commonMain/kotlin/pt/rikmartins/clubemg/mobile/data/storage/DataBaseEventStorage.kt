@@ -2,7 +2,7 @@ package pt.rikmartins.clubemg.mobile.data.storage
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -34,6 +34,7 @@ import kotlin.time.Instant
 class DataBaseEventStorage(
     database: AppDatabase,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val logger: Logger = Logger.withTag(DataBaseEventStorage::class.simpleName!!)
 ) : EventRepositoryImpl.EventStorage {
 
     private val queries = database.appDatabaseQueries
@@ -41,9 +42,9 @@ class DataBaseEventStorage(
     override val events: Flow<List<CalendarEvent>> = queries.selectAllWithImages().asFlow()
         .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEvent() }
 
-    override val timezone: Flow<TimeZone> =
-        queries.getTextValue(TIMEZONE_KEY).asFlow().mapToOneOrNull(defaultDispatcher)
-            .map { textValue -> (textValue?.value_ ?: DEFAULT_API_TIMEZONE).let { TimeZone.of(it) } }
+    override suspend fun getTimeZone(): TimeZone = withContext(defaultDispatcher) {
+        TimeZone.of(queries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
+    }
 
     override suspend fun setTimeZone(timezone: TimeZone): Unit = withContext(defaultDispatcher) {
         TODO("Not yet implemented")
@@ -52,12 +53,17 @@ class DataBaseEventStorage(
     override suspend fun getDateRangeTimestampsOf(
         dateRange: LocalDateRange,
     ): List<EventRepositoryImpl.DateRangeTimestamp> = withContext(defaultDispatcher) {
-        queries.getAllDateRangeTimestamps().executeAsList().map { dateRangeTimestamp ->
-            EventRepositoryImpl.DateRangeTimestamp(
-                dateRange = dateRangeTimestamp.dateRangeStart..dateRangeTimestamp.dateRangeEnd,
-                timestamp = dateRangeTimestamp.timestamp,
-            )
-        }
+        queries.getDateRangeTimestampsThatIntersectRange(
+            rangeStart = dateRange.start,
+            rangeEnd = dateRange.endInclusive
+        ).executeAsList()
+            .also { logger.d { "Found ${it.size} date range timestamps between ${dateRange.start} and ${dateRange.endInclusive}" } }
+            .map { dateRangeTimestamp ->
+                EventRepositoryImpl.DateRangeTimestamp(
+                    dateRange = dateRangeTimestamp.dateRangeStart..dateRangeTimestamp.dateRangeEnd,
+                    timestamp = dateRangeTimestamp.timestamp,
+                )
+            }
     }
 
     override suspend fun saveEventsAndRanges(
@@ -167,12 +173,11 @@ class DataBaseEventStorage(
             existingEvents.forEach { existingEvent ->
                 val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
 
-
-
                 if (correspondingNewEvent != null) {
+                    add(existingEvent diffWith correspondingNewEvent)
+
                     if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate)
                         eventsToUpsert.remove(correspondingNewEvent)
-                    else add(existingEvent diffWith correspondingNewEvent)
                 }
             }
 
@@ -187,13 +192,13 @@ class DataBaseEventStorage(
     }
 
     private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent): EventDiff = StorageEventDiff(
-            id = id,
-            modifiedDate = modifiedDate to other.modifiedDate,
-            title = if (title == other.title) null else title to other.title,
-            startDate = if (startDate == other.startDate) null else startDate to other.startDate,
-            endDate = if (endDate == other.endDate) null else endDate to other.endDate,
-            enrollmentUrl = if (enrollmentUrl == other.enrollmentUrl) null else enrollmentUrl to other.enrollmentUrl,
-        )
+        id = id,
+        modifiedDate = modifiedDate to other.modifiedDate,
+        title = title to other.title,
+        startDate = startDate to other.startDate,
+        endDate = endDate to other.endDate,
+        enrollmentUrl = enrollmentUrl to other.enrollmentUrl,
+    )
 
     private data class StorageEventImage(
         val calendarEventId: String,
@@ -219,10 +224,10 @@ class DataBaseEventStorage(
     private data class StorageEventDiff(
         override val id: String,
         override val modifiedDate: Pair<Instant, Instant>,
-        override val title: Pair<String, String>?,
-        override val startDate: Pair<Instant, Instant>?,
-        override val endDate: Pair<Instant, Instant>?,
-        override val enrollmentUrl: Pair<String, String>?,
+        override val title: Pair<String, String>,
+        override val startDate: Pair<Instant, Instant>,
+        override val endDate: Pair<Instant, Instant>,
+        override val enrollmentUrl: Pair<String, String>,
     ) : EventDiff
 
     private fun CalendarEvent.asCacheCalendarEvent(): CacheCalendarEvent = CacheCalendarEvent(

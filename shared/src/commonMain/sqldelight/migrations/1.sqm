@@ -1,2 +1,2 @@
-ALTER TABLE CalendarEvent ADD COLUMN enrollmentUrl TEXT NOT NULL DEFAULT 'Migration Default';
+ALTER TABLE CalendarEvent ADD COLUMN enrollmentUrl TEXT NOT NULL DEFAULT '';
 ALTER TABLE CalendarEvent DROP COLUMN description;

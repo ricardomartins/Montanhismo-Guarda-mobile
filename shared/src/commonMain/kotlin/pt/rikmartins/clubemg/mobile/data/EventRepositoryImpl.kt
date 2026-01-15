@@ -1,6 +1,6 @@
 package pt.rikmartins.clubemg.mobile.data
 
-import kotlinx.coroutines.CoroutineScope
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import kotlinx.coroutines.FlowPreview
@@ -8,106 +8,114 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshCache
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class, FlowPreview::class, ExperimentalCoroutinesApi::class)
 class EventRepositoryImpl(
-    externalScope: CoroutineScope,
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
-    private val bootTime: Instant = Clock.System.now()
-) : ObserveAllEvents.Gateway, ObserveCalendarCurrentDay.Gateway, ObserveCalendarTimeZone.Gateway,
-    ObserveRefreshingRanges.Gateway, RefreshCache.Gateway, SetRelevantDatePeriod.Gateway,
+    private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
+) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
+    ObserveRefreshingRanges.Gateway, RefreshPeriod.Gateway, SetRelevantDatePeriod.Gateway,
     SynchronizeFavouriteEvents.EventsProvider {
 
-    private val expirationDate: MutableStateFlow<Instant> = MutableStateFlow(bootTime.minus(DEFAULT_CACHE_DURATION))
+    override suspend fun setRelevantDatePeriod(period: LocalDateRange) = refreshStaleEvents(period)
 
-    private val bootDate: LocalDate
-        get() = bootTime.toLocalDate(timeZone = TimeZone.UTC)
+    override suspend fun refreshPeriod(period: LocalDateRange) = refreshRange(period)
 
-    private val relevantDates = MutableStateFlow(
-        bootDate.minus(BEFORE_TODAY_PERIOD)..bootDate.plus(AFTER_TODAY_PERIOD)
-    )
-
-    init {
-        externalScope.launch {
-            combine(
-                expirationDate.debounce(EXPIRATION_DATE_DEBOUNCE_DURATION),
-                relevantDates.sample(DATE_CHANGE_SAMPLING_DURATION)
-            ) { expiration, dates -> expiration to dates }
-                .collect { (expiration, dates) ->
-                    refreshStaleEvents(dates, expiration)
-                }
-        }
-    }
-
-    override suspend fun setRelevantDatePeriod(period: LocalDateRange) {
-        relevantDates.value = period
-    }
-
-    override suspend fun refreshCache() {
-        this.expirationDate.update { Clock.System.now() }
-    }
-
-    override val eventsTimezone: Flow<TimeZone>
-        get() = eventStorage.timezone
+    override suspend fun getTimeZone(): TimeZone = eventStorage.getTimeZone()
 
     override val events: Flow<List<CalendarEvent>>
         get() = eventStorage.events
 
     override val refreshingRanges = MutableStateFlow(emptySet<LocalDateRange>())
 
-    private suspend fun refreshStaleEvents(relevantDates: LocalDateRange, expirationDate: Instant) {
-        eventStorage.getDateRangeTimestampsOf(relevantDates)
-            .fillGaps(relevantDates)
-            .filter { rangeTimestamp -> rangeTimestamp.timestamp < expirationDate }
-            .map { it.dateRange.intersectWith(relevantDates) }
-            .mergeCloseEnoughRanges()
-            .filter { it != LocalDateRange.EMPTY }
-            .asFlow()
-            .flatMapMerge(concurrency = 3) { range ->
-                refreshingRanges.update { it.plusElement(range) }
-                flow {
-                    try {
-                        emit(refreshRange(range))
-                    } finally {
-                        refreshingRanges.update { it.minusElement(range) }
-                    }
-                }
-            }.collect()
+    private val refreshMutex = Mutex()
+
+    private suspend fun refreshStaleEvents(period: LocalDateRange) {
+        logger.v { "Refreshing stale events for $period entered the queue" }
+        refreshMutex.withLock {
+            logger.d { "Proceeding with refreshing stale events for $period" }
+            eventStorage.getDateRangeTimestampsOf(period)
+                .fillGaps(period)
+                .filterAccordingToRules(eventStorage.getTimeZone())
+                .map { it.dateRange.intersectWith(period) }
+                .mergeCloseEnoughRanges()
+                .filter { it != LocalDateRange.EMPTY }
+                .asFlow()
+                .flatMapMerge(concurrency = 3) { range -> flowOf(refreshRange(range, false)) }
+                    .collect()
+        }
     }
 
-    private suspend fun refreshRange(range: LocalDateRange) {
-        val events = eventSource.getEventsInRange(range)
-        eventStorage.saveEventsAndRanges(events, range)
+    private suspend fun refreshRange(range: LocalDateRange, withLock: Boolean = true) {
+        suspend fun execute() {
+            refreshingRanges.update { it.plusElement(range) }
+            try {
+                logger.d { "Refreshing range $range" }
+                val events = eventSource.getEventsInRange(range)
+                logger.v { "Fetched ${events.size} events for range $range. Saving..." }
+                eventStorage.saveEventsAndRanges(events, range)
+                logger.v { "Successfully finished refreshing range $range" }
+            } catch (e: Exception) {
+                logger.e(e) { "Failed to refresh range $range" }
+                throw e
+            } finally {
+                refreshingRanges.update { it.minusElement(range) }
+            }
+        }
+
+        if (withLock) refreshMutex.withLock { execute() } else execute()
+    }
+
+    private fun Collection<DateRangeTimestamp>.filterAccordingToRules(
+        timeZone: TimeZone,
+    ): Collection<DateRangeTimestamp> {
+        val now = Clock.System.now()
+        val aMonthFromNow = now.plus(30.days)
+
+        return filter { dateRangeTimestamp ->
+            dateRangeTimestamp.isStale(now, aMonthFromNow, timeZone)
+                .also { if (it) logger.v { "$dateRangeTimestamp was found to be stale" } }
+        }
+    }
+
+    private fun DateRangeTimestamp.isStale(now: Instant, aMonthFromNow: Instant, timeZone: TimeZone): Boolean {
+        val dateRangeStart = this.dateRange.start.atStartOfDayIn(timeZone)
+        val dateRangeEnd = this.dateRange.endInclusive.plus(DatePeriod(days = 1)).atStartOfDayIn(timeZone)
+
+        // Calculate how long this item is allowed to be cached.
+        val cacheExpiryDuration = when {
+            dateRangeStart >= aMonthFromNow -> DEFAULT_CACHE_DURATION + (dateRangeStart - aMonthFromNow)
+            dateRangeEnd < now -> DEFAULT_CACHE_DURATION + (now - dateRangeEnd)
+            else -> DEFAULT_CACHE_DURATION
+        }
+
+        val itemAge = now - this.timestamp
+        return itemAge > cacheExpiryDuration
     }
 
     private fun Collection<DateRangeTimestamp>.fillGaps(relevantDates: LocalDateRange): Collection<DateRangeTimestamp> {
@@ -179,7 +187,7 @@ class EventRepositoryImpl(
     interface EventStorage {
         val events: Flow<List<CalendarEvent>>
 
-        val timezone: Flow<TimeZone>
+        suspend fun getTimeZone(): TimeZone
 
         suspend fun setTimeZone(timezone: TimeZone)
 
@@ -201,14 +209,8 @@ class EventRepositoryImpl(
 
     private companion object {
 
-        val BEFORE_TODAY_PERIOD = DatePeriod(days = 30)
-        val AFTER_TODAY_PERIOD = DatePeriod(days = 90)
-
-        val DATE_CHANGE_SAMPLING_DURATION = 1.seconds
-        val EXPIRATION_DATE_DEBOUNCE_DURATION = 1.seconds
-
         val PROXIMITY_THRESHOLD = DatePeriod(days = 7)
 
-        val DEFAULT_CACHE_DURATION = 5.days
+        val DEFAULT_CACHE_DURATION = 3.days
     }
 }

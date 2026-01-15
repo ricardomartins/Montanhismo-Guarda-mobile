@@ -3,8 +3,8 @@ package pt.rikmartins.clubemg.mobile.ui
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.MergedEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
 data class Model(
@@ -19,7 +19,7 @@ data class WeekOfEvents(
 )
 
 class SimplifiedEvent(
-    val calendarEvent: CalendarEvent,
+    val calendarEvent: MergedEvent,
     timeZone: TimeZone,
 ) {
     val id: String
@@ -31,6 +31,8 @@ class SimplifiedEvent(
     val range: LocalDateRange = with(calendarEvent) {
         startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
     }
+    val isBookmarked: Boolean
+        get() = calendarEvent.isBookmarked
 
     /**
      * A list of [EventImage]s associated with the event, sorted by file size in ascending order.

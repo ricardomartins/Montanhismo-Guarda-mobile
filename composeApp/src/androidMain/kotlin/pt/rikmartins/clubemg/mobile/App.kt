@@ -21,7 +21,7 @@ data class EventDetailDestination(val eventId: String)
 @Composable
 fun App() {
     AppTheme {
-        Surface {
+        Surface { // TODO: Investigate possibility of removing this Surface (thus having everything directly inside AppTheme)
             val navController = rememberNavController()
             val uriHandler = LocalUriHandler.current
 

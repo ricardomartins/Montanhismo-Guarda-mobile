@@ -4,15 +4,15 @@ import co.touchlab.kermit.Logger
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.UseCase
 
 class SynchronizeFavouriteEvents(
-    private val favouriteProvider: FavouriteProvider,
+    private val bookmarkProvider: BookmarkProvider,
     private val eventsProvider: EventsProvider,
     private val notifier: Notifier,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
-) : UseCase<Unit, Unit>() {
+) : UseCase.Action() {
 
-    override suspend fun execute(params: Unit) {
+    override suspend fun execute() {
         logger.v { "Synchronizing favourite events" }
-        val favouriteEventsIds = favouriteProvider.getAllFavouriteEventsIds()
+        val favouriteEventsIds = bookmarkProvider.getAllBookmarkedEventsIds()
         logger.d { "Favourite events are: $favouriteEventsIds" }
         val eventDiffs = eventsProvider.refreshEventsForDiff(favouriteEventsIds)
         logger.d { "Detected events changes: $eventDiffs" }
@@ -22,8 +22,8 @@ class SynchronizeFavouriteEvents(
         } else logger.v { "No notification of favourite events changes" }
     }
 
-    interface FavouriteProvider {
-        suspend fun getAllFavouriteEventsIds(): Collection<String>
+    interface BookmarkProvider {
+        suspend fun getAllBookmarkedEventsIds(): Collection<String>
     }
 
     interface EventsProvider {

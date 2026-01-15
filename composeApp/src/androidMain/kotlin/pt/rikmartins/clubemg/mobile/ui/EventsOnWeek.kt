@@ -27,11 +27,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
 import pt.rikmartins.clubemg.mobile.thisWeeksSunday
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 interface EventRow {
 
@@ -359,27 +361,26 @@ private fun EventCard(
             overflow = TextOverflow.Ellipsis,
         )
 
-        val locale = LocalConfiguration.current.locales[0]
-        val formatter = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "LLL-d"))
-
-        val dateText = with(event.range) {
-            if (size > 1) {
-                val startDate = start.toJavaLocalDate().format(formatter)
-                val endDate = endInclusive.toJavaLocalDate().format(formatter)
-
-                "$startDate - $endDate"
-            } else {
-                start.toJavaLocalDate().format(formatter)
-            }
-        }
-
         Text(
-            text = dateText,
+            text = event.range.toLocalizedString(LocalConfiguration.current.locales[0]),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
             style = MaterialTheme.typography.bodySmall,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+private fun LocalDateRange.toLocalizedString(locale: Locale): String {
+    val formatter = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "LLL-d"))
+
+    return if (size > 1) {
+        val startDate = start.toJavaLocalDate().format(formatter)
+        val endDate = endInclusive.toJavaLocalDate().format(formatter)
+
+        "$startDate - $endDate"
+    } else {
+        start.toJavaLocalDate().format(formatter)
     }
 }

@@ -2,7 +2,6 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.LocalDate
@@ -20,15 +19,17 @@ class ObserveCalendarCurrentDay(
 ) : WatchCase.Supplier<LocalDate>() {
 
     override fun execute(): Flow<LocalDate> = flow {
+        val timeZone = gateway.getTimeZone()
+
         while (true) {
-            emit(Unit)
+            emit(clock.todayIn(timeZone))
             delay(5.minutes)
         }
     }
-        .combine(gateway.eventsTimezone) { _, timeZone -> clock.todayIn(timeZone) }
         .distinctUntilChanged()
 
     interface Gateway {
-        val eventsTimezone: Flow<TimeZone>
+
+        suspend fun getTimeZone(): TimeZone
     }
 }

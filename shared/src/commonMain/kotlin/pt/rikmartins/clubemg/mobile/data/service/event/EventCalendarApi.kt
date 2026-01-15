@@ -160,7 +160,7 @@ class EventCalendarApi(
         @Serializable
         @Resource("{id}")
         data class Id(
-            val parent: EventsResource = EventsResource(),
+            val parent: EventsResource = EventsResource(perPage = null),
             val id: Int,
         )
     }

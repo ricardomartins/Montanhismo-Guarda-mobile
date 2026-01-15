@@ -16,11 +16,11 @@ import org.koin.dsl.binds
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.service.event.EventCalendarApi
 import pt.rikmartins.clubemg.mobile.data.storage.DataBaseEventStorage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshCache
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 
@@ -47,12 +47,12 @@ internal val dataModule = module {
 
     single<EventRepositoryImpl.EventSource> { EventCalendarApi(get()) }
     single<EventRepositoryImpl.EventStorage> { DataBaseEventStorage(get()) }
-    single { EventRepositoryImpl(get(), get(), get()) } binds arrayOf(
-        ObserveAllEvents.Gateway::class,
+    single { EventRepositoryImpl(get(), get()) } binds arrayOf(
+        ObserveAllEvents.EventsProvider::class,
         ObserveCalendarCurrentDay.Gateway::class,
-        ObserveCalendarTimeZone.Gateway::class,
+        GetCalendarTimeZone.Gateway::class,
         ObserveRefreshingRanges.Gateway::class,
-        RefreshCache.Gateway::class,
+        RefreshPeriod.Gateway::class,
         SetRelevantDatePeriod.Gateway::class,
         SynchronizeFavouriteEvents.EventsProvider::class,
     )

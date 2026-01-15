@@ -49,6 +49,8 @@ import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
+    val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
+
     val listState = rememberLazyListState()
 
     val scope = rememberCoroutineScope()
@@ -60,8 +62,6 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
     var showFab by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-
-    var selectedEvent by remember { mutableStateOf<SimplifiedEvent?>(null) }
 
     LaunchedEffect(listState, todayMonday) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collect { visibleInfo ->
@@ -91,7 +91,7 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
                     actions = {
                         IconButton(onClick = { viewModel.forceSync() }) {
                             Icon(
-                                painter = painterResource(id = R.drawable.sync_24),
+                                painter = painterResource(id = R.drawable.ic_sync),
                                 contentDescription = stringResource(R.string.force_sync),
                             )
                         }
@@ -128,7 +128,7 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
                     },
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.today_24),
+                        painter = painterResource(id = R.drawable.ic_today),
                         contentDescription = stringResource(R.string.jump_to_today),
                     )
                 }
@@ -142,16 +142,18 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
             state = listState,
         ) {
             items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, today) { selectedEvent = it }
+                Week(weekOfEvents, today) { viewModel.setSelectedEvent(it) }
                 HorizontalDivider(thickness = Dp.Hairline)
             }
         }
-        if (selectedEvent != null) EventActionsDialog(
-            event = selectedEvent!!,
+        val selectedEventVal = selectedEvent
+        if (selectedEventVal != null) EventActionsDialog(
+            event = selectedEventVal,
             navigateToDetails = {
                 navigateToDetails(it)
-                selectedEvent = null
+                viewModel.unsetSelectedEvent()
             },
-        ) { selectedEvent = null }
+            setBookmarkTo = { viewModel.setBookmarkOfEventTo(selectedEventVal, it) },
+        ) { viewModel.unsetSelectedEvent() }
     }
 }

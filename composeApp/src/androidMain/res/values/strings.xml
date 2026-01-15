@@ -7,6 +7,52 @@
     <string name="title_calendar">Calendário de Actividades</string>
     <string name="jump_to_today">Pular para hoje</string>
     <string name="force_sync">Forçar sincronização</string>
-    <string name="visit_page">Visitar a página</string>
+    <string name="visit_page_action">Visitar a página</string>
+    <string name="bookmark_activity_action">Marcar esta atividade</string>
+    <string name="unbookmark_activity_action">Desmarcar esta atividade</string>
+
+    <!--region Notification-->
+
+    <!--region Relevant changes-->
+    <string name="event_cancelled_title">Atividade marcada cancelada</string>
+    <string name="event_cancelled_text">\'%1$s\' foi cancelada</string>
+    <string name="event_cancelled_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi cancelada.</string>
+
+    <string name="event_postponed_title">Atividade marcada adiada</string>
+    <string name="event_postponed_text">\'%1$s\' foi adiada</string>
+    <string name="event_postponed_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi adiada.</string>
+
+    <string name="event_rescheduled_title">Atividade marcada reagendada</string>
+    <string name="event_rescheduled_text">\'%1$s\' agora será em %2$tD</string>
+    <string name="event_rescheduled_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi reagendada para %3$tD.</string>
+
+    <string name="event_enrollment_started_title">Abriram as inscrições de atividade marcada</string>
+    <string name="event_enrollment_started_text">Inscrições na \'%1$s\' já estão abertas</string>
+    <!--endregion Relevant changes-->
+
+    <!--region Irrelevant changes-->
+    <string name="single_event_renamed_title">Atividade marcada foi renomeada</string>
+    <string name="single_event_renamed_text">\'%1$s\' foi renomeada</string>
+    <string name="single_event_renamed_big_text">\'%2$s\' é o novo nome da atividade \'%1$s\'.</string>
+
+    <string name="single_event_other_changes_title">Atividade marcada foi actualizada</string>
+    <string name="single_event_other_changes_text">\'%1$s\' foi actualizada</string>
+    <!--endregion Irrelevant changes-->
+
+    <!--region Notification channels-->
+    <string name="favourite_relevant_channel_name">Informação relevante de marcadores</string>
+    <string name="favourite_relevant_channel_description">Notificações relevantes das atividades marcadas.</string>
+    <string name="favourite_not_relevant_channel_name">Informação irrelevante de marcadores</string>
+    <string name="favourite_not_relevant_channel_description">Notificações pouco relevantes das atividades marcadas.</string>
+    <!--endregion Notification channels-->
+
+    <!--region Rationale-->
+    <string name="notification_permission_rationale_title">É necessária autorização</string>
+    <string name="notification_permission_rationale_text">Para te notificar sobre alterações neste evento (como cancelamentos ou adiamentos), é preciso autorizar a aplicação a exibir notificações.</string>
+    <string name="notification_permission_rationale_positive_action">Continuar</string>
+    <string name="notification_permission_rationale_negative_action">Agora não</string>
+    <!--endregion Rationale-->
+
+    <!--endregion Notification-->
 
 </resources>

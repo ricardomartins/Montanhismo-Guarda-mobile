@@ -58,7 +58,7 @@ private fun EventDetails(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            painter = painterResource(id = R.drawable.today_24),
+                            painter = painterResource(id = R.drawable.ic_today),
                             contentDescription = stringResource(R.string.jump_to_today),
                         )
                     }
