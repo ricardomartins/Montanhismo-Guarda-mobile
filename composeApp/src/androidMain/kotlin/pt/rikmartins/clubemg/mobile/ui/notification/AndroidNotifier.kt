@@ -151,7 +151,8 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getText(eventDiff: EventDiff): String =
             getString(R.string.event_enrollment_started_text, eventDiff.oldEvent.title)
 
-        override fun Context.getBigText(eventDiff: EventDiff): String? = null
+        override fun Context.getBigText(eventDiff: EventDiff): String =
+            getString(R.string.event_enrollment_started_big_text, eventDiff.oldEvent.title)
     }
 
     object SingleEventRenamed : ClubeMGNotification(channel = Channel.FAVOURITE_NOT_RELEVANT) {

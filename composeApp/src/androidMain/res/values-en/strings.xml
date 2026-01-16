@@ -28,6 +28,7 @@
 
     <string name="event_enrollment_started_title">Enrollment opened for bookmarked activity</string>
     <string name="event_enrollment_started_text">Enrollment for \'%1$s\' is now open</string>
+    <string name="event_enrollment_started_big_text">Enrollment for the activity \'%1$s\', which was scheduled for %2$tD, has been opened.</string>
     <!--endregion Relevant changes-->
 
     <!--region Irrelevant changes-->

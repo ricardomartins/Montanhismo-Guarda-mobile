@@ -14,28 +14,29 @@
     <!--region Notification-->
 
     <!--region Relevant changes-->
-    <string name="event_cancelled_title">Atividade marcada cancelada</string>
+    <string name="event_cancelled_title">Atividade cancelada</string>
     <string name="event_cancelled_text">\'%1$s\' foi cancelada</string>
-    <string name="event_cancelled_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi cancelada.</string>
+    <string name="event_cancelled_big_text">A atividade \'%1$s\', marcada como favorita, que se iria realizar no dia %2$tD, foi cancelada.</string>
 
-    <string name="event_postponed_title">Atividade marcada adiada</string>
+    <string name="event_postponed_title">Atividade adiada</string>
     <string name="event_postponed_text">\'%1$s\' foi adiada</string>
-    <string name="event_postponed_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi adiada.</string>
+    <string name="event_postponed_big_text">A atividade \'%1$s\', marcada como favorita, que se iria realizar no dia %2$tD, foi adiada.</string>
 
-    <string name="event_rescheduled_title">Atividade marcada reagendada</string>
+    <string name="event_rescheduled_title">Atividade reagendada</string>
     <string name="event_rescheduled_text">\'%1$s\' agora será em %2$tD</string>
-    <string name="event_rescheduled_big_text">A atividade \'%1$s\', que se iria realizar no dia %2$tD, foi reagendada para %3$tD.</string>
+    <string name="event_rescheduled_big_text">A atividade \'%1$s\', marcada como favorita, que se iria realizar no dia %2$tD, foi reagendada para %3$tD.</string>
 
-    <string name="event_enrollment_started_title">Abriram as inscrições de atividade marcada</string>
-    <string name="event_enrollment_started_text">Inscrições na \'%1$s\' já estão abertas</string>
+    <string name="event_enrollment_started_title">Abriram as inscrições</string>
+    <string name="event_enrollment_started_text">\'%1$s\' já abriu as inscrições</string>
+    <string name="event_enrollment_started_big_text">As inscrições para a atividade \'%1$s\', marcada como favorita, já abriram.</string>
     <!--endregion Relevant changes-->
 
     <!--region Irrelevant changes-->
-    <string name="single_event_renamed_title">Atividade marcada foi renomeada</string>
+    <string name="single_event_renamed_title">Atividade renomeada</string>
     <string name="single_event_renamed_text">\'%1$s\' foi renomeada</string>
     <string name="single_event_renamed_big_text">\'%2$s\' é o novo nome da atividade \'%1$s\'.</string>
 
-    <string name="single_event_other_changes_title">Atividade marcada foi actualizada</string>
+    <string name="single_event_other_changes_title">Atividade actualizada</string>
     <string name="single_event_other_changes_text">\'%1$s\' foi actualizada</string>
     <!--endregion Irrelevant changes-->
 

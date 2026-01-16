@@ -388,13 +388,13 @@ private fun EventCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = event.title,
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
                 Text(
                     text = event.range.toLocalizedString(LocalConfiguration.current.locales[0]),
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
