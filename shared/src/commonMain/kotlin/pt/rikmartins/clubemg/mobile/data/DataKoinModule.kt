@@ -47,9 +47,9 @@ internal val dataModule = module {
         }
     }
 
-    single<EventRepositoryImpl.EventSource> { EventCalendarApi(get()) }
-    single<EventRepositoryImpl.EventStorage> { DataBaseEventStorage(get()) }
-    single { EventRepositoryImpl(get(), get()) } binds arrayOf(
+    single<EventRepository.EventSource> { EventCalendarApi(get()) }
+    single<EventRepository.EventStorage> { DataBaseEventStorage(get()) }
+    single { EventRepository(get(), get()) } binds arrayOf(
         ObserveAllEvents.EventsProvider::class,
         ObserveCalendarCurrentDay.Gateway::class,
         GetCalendarTimeZone.Gateway::class,

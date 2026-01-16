@@ -34,7 +34,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class, FlowPreview::class, ExperimentalCoroutinesApi::class)
-class EventRepositoryImpl(
+class EventRepository(
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)

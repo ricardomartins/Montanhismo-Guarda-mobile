@@ -19,7 +19,7 @@ import pt.rikmartins.clubemg.mobile.cache.AppDatabase
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
-import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
+import pt.rikmartins.clubemg.mobile.data.EventRepository
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
@@ -35,7 +35,7 @@ class DataBaseEventStorage(
     database: AppDatabase,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val logger: Logger = Logger.withTag(DataBaseEventStorage::class.simpleName!!)
-) : EventRepositoryImpl.EventStorage {
+) : EventRepository.EventStorage {
 
     private val queries = database.appDatabaseQueries
 
@@ -52,14 +52,14 @@ class DataBaseEventStorage(
 
     override suspend fun getDateRangeTimestampsOf(
         dateRange: LocalDateRange,
-    ): List<EventRepositoryImpl.DateRangeTimestamp> = withContext(defaultDispatcher) {
+    ): List<EventRepository.DateRangeTimestamp> = withContext(defaultDispatcher) {
         queries.getDateRangeTimestampsThatIntersectRange(
             rangeStart = dateRange.start,
             rangeEnd = dateRange.endInclusive
         ).executeAsList()
             .also { logger.d { "Found ${it.size} date range timestamps between ${dateRange.start} and ${dateRange.endInclusive}" } }
             .map { dateRangeTimestamp ->
-                EventRepositoryImpl.DateRangeTimestamp(
+                EventRepository.DateRangeTimestamp(
                     dateRange = dateRangeTimestamp.dateRangeStart..dateRangeTimestamp.dateRangeEnd,
                     timestamp = dateRangeTimestamp.timestamp,
                 )

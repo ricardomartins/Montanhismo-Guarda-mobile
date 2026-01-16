@@ -33,7 +33,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
-import pt.rikmartins.clubemg.mobile.data.EventRepositoryImpl
+import pt.rikmartins.clubemg.mobile.data.EventRepository
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -43,7 +43,7 @@ import kotlin.time.Instant
 class EventCalendarApi(
     private val client: HttpClient,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
-) : EventRepositoryImpl.EventSource {
+) : EventRepository.EventSource {
 
     override suspend fun getEventsInRange(dateRange: LocalDateRange): List<CalendarEvent> = coroutineScope {
         val startDateAsParam = dateRange.start.atTime(0, 0).asEventDate()
