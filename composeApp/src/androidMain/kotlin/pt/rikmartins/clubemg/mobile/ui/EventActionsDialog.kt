@@ -90,15 +90,14 @@ fun EventActionsDialog(
 
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
+            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
             shape = RoundedCornerShape(28.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
+                    .clip(MaterialTheme.shapes.medium)
             ) {
                 val fallback = painterResource(id = R.drawable.fallback)
                 val selectedImage = remember(event) { event.sortedImages.firstOrNull { it.id == null } }
@@ -106,10 +105,7 @@ fun EventActionsDialog(
                 AsyncImage(
                     model = selectedImage?.url,
                     contentDescription = "${event.title} cover image", // TODO: Localize
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .clip(MaterialTheme.shapes.medium),
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     contentScale = ContentScale.FillWidth,
                     alignment = Alignment.Center,
                     placeholder = fallback,
@@ -126,9 +122,7 @@ fun EventActionsDialog(
                         checkedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
                     ),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.TopEnd)
+                    modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
                 ) {
                     Icon(
                         painter = painterResource(
