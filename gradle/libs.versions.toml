@@ -5,15 +5,16 @@ androidx-navigationCompose = "2.9.5"
 androidx-ui-tooling = "1.9.4"
 androidx-viewmodelCompose = "2.9.4"
 androidx-work = "2.11.0"
+androidx-datastore = "1.2.0"
 coil = "3.3.0"
 compose-multiplatform = "1.9.2"
 kmpObservableViewmodel = "1.0.0"
 kmpNativeCoroutines = "1.0.0-ALPHA-48"
 koin = "4.1.1"
 kotlin = "2.2.21"
-kotlinx-serialization = "1.9.0"
 ksp = "2.2.0-2.0.2"
 ktor = "3.3.1"
+kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
 kermit = "2.0.8"
 ksoup = "0.2.5"
@@ -32,7 +33,6 @@ kmp-observable-viewmodel = { module = "com.rickclephas.kmp:kmp-observableviewmod
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 koin-androidx-workmanager = { module = "io.insert-koin:koin-androidx-workmanager ", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
-kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
@@ -40,6 +40,7 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-resources = { module = "io.ktor:ktor-client-resources", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }

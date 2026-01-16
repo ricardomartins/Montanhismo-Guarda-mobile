@@ -31,9 +31,33 @@ kotlin {
 
     sourceSets {
         all {
-            languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
-            languageSettings.optIn("kotlin.experimental.ExperimentalObjCName")
-            languageSettings.optIn("kotlin.time.ExperimentalTime")
+            languageSettings {
+                optIn("kotlinx.cinterop.ExperimentalForeignApi")
+                optIn("kotlin.experimental.ExperimentalObjCName")
+                optIn("kotlin.time.ExperimentalTime")
+            }
+        }
+        commonMain.dependencies {
+            // Core multiplatform libraries for business logic
+            implementation(libs.koin.core)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kermit) // Logging
+            implementation(libs.ksoup) // HTML parsing
+
+            // Ktor for networking
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.resources)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
+            // SQLDelight for database
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
+
+            // KMP ViewModel
+            api(libs.kmp.observable.viewmodel)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
@@ -43,26 +67,12 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.sqldelight.native.driver)
         }
-        commonMain.dependencies {
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.client.resources)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.kermit)
-            implementation(libs.ksoup)
-            implementation(libs.koin.core)
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutines)
-            api(libs.kmp.observable.viewmodel)
-        }
     }
 }
 
 android {
     namespace = "pt.rikmartins.clubemg.mobile.shared"
-    compileSdk = 35
+    compileSdk = 36
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

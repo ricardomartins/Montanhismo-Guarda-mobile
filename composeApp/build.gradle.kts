@@ -29,7 +29,6 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
-            implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -39,7 +38,6 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(projects.shared)
-            implementation(libs.kotlinx.serialization.core)
         }
     }
 }
@@ -51,7 +49,7 @@ android {
     defaultConfig {
         applicationId = "pt.rikmartins.clubemg.mobile"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "0.1.1"
     }
