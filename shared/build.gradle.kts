@@ -56,6 +56,10 @@ kotlin {
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
 
+            // DataStore
+            implementation(libs.androidx.datastore)
+            implementation(libs.androidx.datastore.preferences)
+
             // KMP ViewModel
             api(libs.kmp.observable.viewmodel)
         }

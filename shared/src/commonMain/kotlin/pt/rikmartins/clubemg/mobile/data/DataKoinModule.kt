@@ -12,6 +12,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.service.event.EventCalendarApi
@@ -21,6 +22,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 
@@ -55,5 +57,11 @@ internal val dataModule = module {
         RefreshPeriod.Gateway::class,
         SetRelevantDatePeriod.Gateway::class,
         SynchronizeFavouriteEvents.EventsProvider::class,
+    )
+
+    singleOf(::BookmarkRepository) binds arrayOf(
+        SynchronizeFavouriteEvents.BookmarkProvider::class,
+        SetBookmarkOfEventId.BookmarkProvider::class,
+        ObserveAllEvents.BookmarkProvider::class,
     )
 }
