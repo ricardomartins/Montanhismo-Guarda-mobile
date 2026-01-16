@@ -26,11 +26,7 @@ interface MergedEvent : CalendarEvent {
     val isBookmarked: Boolean
 }
 
-interface EventDiff {
-    val id: String
-    val modifiedDate: Pair<Instant, Instant>
-    val title: Pair<String, String>
-    val startDate: Pair<Instant, Instant>
-    val endDate: Pair<Instant, Instant>
-    val enrollmentUrl: Pair<String, String>
-}
+data class EventDiff(
+    val oldEvent: CalendarEvent,
+    val newEvent: CalendarEvent,
+)

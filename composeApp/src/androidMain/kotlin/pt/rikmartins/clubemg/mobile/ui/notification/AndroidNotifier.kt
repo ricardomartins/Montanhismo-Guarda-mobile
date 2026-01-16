@@ -21,9 +21,9 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class AndroidNotifier(private val context: Context) : SynchronizeFavouriteEvents.Notifier {
 
-    @OptIn(ExperimentalTime::class)
     override suspend fun notifyFavouriteEventsChanged(eventsDiffs: Collection<EventDiff>) {
         val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
@@ -37,15 +37,15 @@ class AndroidNotifier(private val context: Context) : SynchronizeFavouriteEvents
                 if (false) { // TODO: Add event postpone logic
                     add(ClubeMGNotification.EventPostponed)
                 }
-                if (eventDiff.startDate.hasChanged() || eventDiff.endDate.hasChanged())
+                if (eventDiff.startDateHasChanged() || eventDiff.endDateHasChanged())
                     add(ClubeMGNotification.EventRescheduled)
 
-                if (eventDiff.enrollmentUrl.first.isEmpty() && eventDiff.enrollmentUrl.second.isNotEmpty())
+                if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty())
                     add(ClubeMGNotification.EventEnrollmentStarted)
 
                 // Irrelevant
-                if (eventDiff.title.hasChanged()) add(ClubeMGNotification.SingleEventRenamed)
-                if (eventDiff.modifiedDate.hasChanged() && isEmpty()) add(ClubeMGNotification.SingleEventOtherChanges)
+                if (eventDiff.titleHasChanged()) add(ClubeMGNotification.SingleEventRenamed)
+                if (eventDiff.modifiedDateHasChanged() && isEmpty()) add(ClubeMGNotification.SingleEventOtherChanges)
             }
                 .map { it.asNotification(context, eventDiff) }
         }
@@ -56,7 +56,10 @@ class AndroidNotifier(private val context: Context) : SynchronizeFavouriteEvents
             }
     }
 
-    private fun <T> Pair<T, T>.hasChanged(): Boolean = first != second
+    private fun EventDiff.startDateHasChanged(): Boolean = oldEvent.startDate != newEvent.startDate
+    private fun EventDiff.endDateHasChanged(): Boolean = oldEvent.endDate != newEvent.endDate
+    private fun EventDiff.modifiedDateHasChanged(): Boolean = oldEvent.modifiedDate != newEvent.modifiedDate
+    private fun EventDiff.titleHasChanged(): Boolean = oldEvent.title != newEvent.title
 }
 
 fun ClubeMGApp.setupNotificationChannels() {
@@ -110,10 +113,10 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getTitle(eventDiff: EventDiff): String = getString(R.string.event_cancelled_title)
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.event_cancelled_text, eventDiff.title.first)
+            getString(R.string.event_cancelled_text, eventDiff.oldEvent.title)
 
         override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(R.string.event_cancelled_big_text, eventDiff.title.first, eventDiff.startDate.first)
+            getString(R.string.event_cancelled_big_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
     }
 
     object EventPostponed : ClubeMGNotification(channel = Channel.FAVOURITE_RELEVANT) {
@@ -121,10 +124,10 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getTitle(eventDiff: EventDiff): String = getString(R.string.event_postponed_title)
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.event_postponed_text, eventDiff.title.first)
+            getString(R.string.event_postponed_text, eventDiff.oldEvent.title)
 
         override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(R.string.event_postponed_big_text, eventDiff.title.first, eventDiff.startDate.first)
+            getString(R.string.event_postponed_big_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
     }
 
     object EventRescheduled : ClubeMGNotification(channel = Channel.FAVOURITE_RELEVANT) {
@@ -132,12 +135,12 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getTitle(eventDiff: EventDiff): String = getString(R.string.event_rescheduled_title)
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.event_rescheduled_text, eventDiff.title.first, eventDiff.startDate.second)
+            getString(R.string.event_rescheduled_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
 
         override fun Context.getBigText(eventDiff: EventDiff): String =
             getString(
                 R.string.event_rescheduled_big_text,
-                eventDiff.title.first, eventDiff.startDate.first, eventDiff.startDate.second,
+                eventDiff.oldEvent.title, eventDiff.oldEvent.startDate, eventDiff.newEvent.startDate,
             )
     }
 
@@ -146,7 +149,7 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getTitle(eventDiff: EventDiff): String = getString(R.string.event_enrollment_started_title)
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.event_enrollment_started_text, eventDiff.title.first)
+            getString(R.string.event_enrollment_started_text, eventDiff.oldEvent.title)
 
         override fun Context.getBigText(eventDiff: EventDiff): String? = null
     }
@@ -157,10 +160,10 @@ private sealed class ClubeMGNotification(val channel: Channel) {
 
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.single_event_renamed_text, eventDiff.title.first)
+            getString(R.string.single_event_renamed_text, eventDiff.oldEvent.title)
 
         override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(R.string.single_event_renamed_big_text, eventDiff.title.first, eventDiff.title.second)
+            getString(R.string.single_event_renamed_big_text, eventDiff.oldEvent.title, eventDiff.newEvent.title)
     }
 
     object SingleEventOtherChanges : ClubeMGNotification(channel = Channel.FAVOURITE_NOT_RELEVANT) {
@@ -169,7 +172,7 @@ private sealed class ClubeMGNotification(val channel: Channel) {
             getString(R.string.single_event_other_changes_title)
 
         override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.single_event_other_changes_text, eventDiff.title.first)
+            getString(R.string.single_event_other_changes_text, eventDiff.oldEvent.title)
 
         override fun Context.getBigText(eventDiff: EventDiff): String? = null
     }

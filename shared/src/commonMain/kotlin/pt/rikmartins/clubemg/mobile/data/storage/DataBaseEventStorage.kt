@@ -191,13 +191,19 @@ class DataBaseEventStorage(
         }
     }
 
-    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent): EventDiff = StorageEventDiff(
-        id = id,
-        modifiedDate = modifiedDate to other.modifiedDate,
-        title = title to other.title,
-        startDate = startDate to other.startDate,
-        endDate = endDate to other.endDate,
-        enrollmentUrl = enrollmentUrl to other.enrollmentUrl,
+    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent): EventDiff = EventDiff(
+        StorageCalendarEvent(
+            id = id,
+            creationDate = creationDate,
+            modifiedDate = modifiedDate,
+            title = title,
+            url = url,
+            startDate = startDate,
+            endDate = endDate,
+            enrollmentUrl = enrollmentUrl,
+            images = emptyList()
+        ),
+        newEvent = other
     )
 
     private data class StorageEventImage(
@@ -220,15 +226,6 @@ class DataBaseEventStorage(
         override val enrollmentUrl: String,
         override val images: List<StorageEventImage>,
     ) : CalendarEvent
-
-    private data class StorageEventDiff(
-        override val id: String,
-        override val modifiedDate: Pair<Instant, Instant>,
-        override val title: Pair<String, String>,
-        override val startDate: Pair<Instant, Instant>,
-        override val endDate: Pair<Instant, Instant>,
-        override val enrollmentUrl: Pair<String, String>,
-    ) : EventDiff
 
     private fun CalendarEvent.asCacheCalendarEvent(): CacheCalendarEvent = CacheCalendarEvent(
         id = id,
