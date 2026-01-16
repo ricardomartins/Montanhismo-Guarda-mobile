@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -254,27 +254,30 @@ internal fun EventsOnWeek(
     }
 
     Column(modifier = modifier) {
+        val showImage = rows.size < 2
+
         rows.forEach { eventRow ->
             Row(Modifier.weight(1f)) {
                 when (eventRow) {
                     is EventRow.Span.Single.Weekdays -> {
-                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Single.WeekdaysAndSaturday -> {
                         EventCard(
                             eventRow.event,
+                            showImage,
                             onEventClick,
-                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
+                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT)
                         )
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
-                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event, onEventClick)
+                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event, showImage, onEventClick)
                     is EventRow.Span.Single.Saturday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
@@ -282,6 +285,7 @@ internal fun EventsOnWeek(
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
                         EventCard(
                             eventRow.event,
+                            showImage,
                             onEventClick,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT + FULL_DAY_WEIGHT),
                         )
@@ -289,28 +293,54 @@ internal fun EventsOnWeek(
 
                     is EventRow.Span.Single.Sunday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
-                        EventCard(eventRow.event, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Double.WeekdaysPlusSunday -> {
-                        EventCard(eventRow.startEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.startEvent,
+                            showImage,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.endEvent,
+                            showImage,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                     }
 
                     is EventRow.Span.Double.WeekdaysAndSaturdayPlusSunday -> {
                         EventCard(
                             eventRow.startEvent,
+                            showImage,
                             onEventClick,
                             modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
                         )
-                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.endEvent,
+                            showImage,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                     }
 
                     is EventRow.Span.Double.SaturdayPlusSunday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.startEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
-                        EventCard(eventRow.endEvent, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.startEvent,
+                            showImage,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
+                        EventCard(
+                            eventRow.endEvent,
+                            showImage,
+                            onEventClick,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                     }
                 }
             }
@@ -321,54 +351,61 @@ internal fun EventsOnWeek(
 @Composable
 private fun EventCard(
     event: SimplifiedEvent,
+    showImage: Boolean,
     onEventClick: (event: SimplifiedEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    ElevatedCard(
         modifier = modifier
             .fillMaxHeight()
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         onClick = { onEventClick(event) },
     ) {
-        var imageSize by remember { mutableStateOf(IntSize.Zero) }
-        val selectedImage = remember(imageSize) {
-            event.sortedImages.firstOrNull {
-                it.width > imageSize.width && it.height > imageSize.height
-            }?.url
+        if (showImage) {
+            var imageSize by remember { mutableStateOf(IntSize.Zero) }
+            val selectedImage = remember(imageSize) {
+                event.sortedImages.firstOrNull {
+                    it.width > imageSize.width && it.height > imageSize.height
+                }?.url
+            }
+
+            if (selectedImage != null) AsyncImage(
+                model = selectedImage,
+                contentDescription = "${event.title} cover image", // TODO: Localize
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .onSizeChanged { imageSize = it }
+                    .clip(MaterialTheme.shapes.medium),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                placeholder = painterResource(id = R.drawable.fallback),
+                error = painterResource(id = R.drawable.fallback),
+                fallback = painterResource(id = R.drawable.fallback),
+            )
         }
+        Row {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = event.title,
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
 
-        if (selectedImage != null) AsyncImage(
-            model = selectedImage,
-            contentDescription = "${event.title} cover image", // TODO: Localize
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .onSizeChanged { imageSize = it }
-                .clip(MaterialTheme.shapes.medium),
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.Center,
-            placeholder = painterResource(id = R.drawable.fallback),
-            error = painterResource(id = R.drawable.fallback),
-            fallback = painterResource(id = R.drawable.fallback),
-        )
-        Text(
-            text = event.title,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 8.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            overflow = TextOverflow.Ellipsis,
-        )
+                Text(
+                    text = event.range.toLocalizedString(LocalConfiguration.current.locales[0]),
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
-        Text(
-            text = event.range.toLocalizedString(LocalConfiguration.current.locales[0]),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
-            style = MaterialTheme.typography.bodySmall,
-            overflow = TextOverflow.Ellipsis,
-        )
+            if (event.isBookmarked) Icon(
+                painter = painterResource(R.drawable.ic_bookmark),
+                contentDescription = null, // TODO: Localize
+                modifier = Modifier.padding(start = 8.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
