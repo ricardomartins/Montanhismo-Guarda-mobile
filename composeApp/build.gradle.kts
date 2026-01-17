@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.googleServices)
 }
 
 kotlin {
@@ -19,6 +20,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.firebase.analytics)
             implementation(libs.androidx.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.viewmodel.compose)
@@ -81,5 +83,6 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.firebase.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
