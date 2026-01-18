@@ -48,3 +48,9 @@
 # Geralmente não é necessário, mas se tiver problemas:
 -keep class com.fleeksoft.ksoup.** { *; }
 -dontwarn com.fleeksoft.ksoup.**
+
+# Regras para o Firebase Crashlytics
+# Mantém os nomes dos ficheiros e números de linha para relatórios de erro mais úteis.
+-keepattributes SourceFile,LineNumberTable
+-keep class com.google.firebase.crashlytics.** { *; }
+-dontwarn com.google.firebase.crashlytics.**

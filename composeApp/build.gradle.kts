@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 kotlin {
@@ -21,6 +22,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.firebase.analytics)
+            implementation(libs.firebase.crashlytics)
             implementation(libs.androidx.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.viewmodel.compose)
@@ -54,8 +56,8 @@ android {
         applicationId = "pt.rikmartins.clubemg.mobile"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.2.0"
+        versionCode = 6
+        versionName = "0.2.1"
     }
     packaging {
         resources {
