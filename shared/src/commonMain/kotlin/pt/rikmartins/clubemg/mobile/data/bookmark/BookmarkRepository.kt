@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.data
+package pt.rikmartins.clubemg.mobile.data.bookmark
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences

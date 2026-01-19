@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.data.storage
+package pt.rikmartins.clubemg.mobile.data.event
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
@@ -16,17 +16,14 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.cache.AppDatabase
-import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
-import pt.rikmartins.clubemg.mobile.data.EventRepository
+import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -191,7 +188,7 @@ class DataBaseEventStorage(
         }
     }
 
-    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent): EventDiff = EventDiff(
+    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent) = EventDiff(
         StorageCalendarEvent(
             id = id,
             creationDate = creationDate,
@@ -227,7 +224,7 @@ class DataBaseEventStorage(
         override val images: List<StorageEventImage>,
     ) : CalendarEvent
 
-    private fun CalendarEvent.asCacheCalendarEvent(): CacheCalendarEvent = CacheCalendarEvent(
+    private fun CalendarEvent.asCacheCalendarEvent() = CacheCalendarEvent(
         id = id,
         creationDate = creationDate,
         modifiedDate = modifiedDate,
@@ -238,7 +235,7 @@ class DataBaseEventStorage(
         enrollmentUrl = enrollmentUrl,
     )
 
-    private fun EventImage.asCacheEventImage(eventId: String): CacheEventImage = CacheEventImage(
+    private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
         calendarEventId = eventId,
         id = id,
         url = url,

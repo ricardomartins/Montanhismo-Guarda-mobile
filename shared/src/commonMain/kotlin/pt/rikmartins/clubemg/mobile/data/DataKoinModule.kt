@@ -15,8 +15,10 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.binds
 import org.koin.dsl.module
-import pt.rikmartins.clubemg.mobile.data.service.event.EventCalendarApi
-import pt.rikmartins.clubemg.mobile.data.storage.DataBaseEventStorage
+import pt.rikmartins.clubemg.mobile.data.bookmark.BookmarkRepository
+import pt.rikmartins.clubemg.mobile.data.event.EventCalendarApi
+import pt.rikmartins.clubemg.mobile.data.event.EventRepository
+import pt.rikmartins.clubemg.mobile.data.event.DataBaseEventStorage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay

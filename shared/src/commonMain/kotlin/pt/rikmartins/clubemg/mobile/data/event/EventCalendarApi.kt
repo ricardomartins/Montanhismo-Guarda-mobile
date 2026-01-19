@@ -1,8 +1,7 @@
-package pt.rikmartins.clubemg.mobile.data.service.event
+package pt.rikmartins.clubemg.mobile.data.event
 
 import co.touchlab.kermit.Logger
 import com.fleeksoft.ksoup.Ksoup
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -33,11 +32,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
-import pt.rikmartins.clubemg.mobile.data.EventRepository
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.orEmpty
 import kotlin.time.Instant
 
 class EventCalendarApi(
