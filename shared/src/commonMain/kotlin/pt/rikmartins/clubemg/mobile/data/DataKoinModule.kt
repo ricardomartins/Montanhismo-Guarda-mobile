@@ -22,7 +22,7 @@ import pt.rikmartins.clubemg.mobile.data.event.DataBaseEventStorage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
@@ -56,7 +56,7 @@ internal val dataModule = module {
         ObserveAllEvents.EventsProvider::class,
         ObserveCalendarCurrentDay.Gateway::class,
         GetCalendarTimeZone.Gateway::class,
-        ObserveRefreshingRanges.Gateway::class,
+        ObserveRefreshing.Gateway::class,
         RefreshPeriod.Gateway::class,
         SetRelevantDatePeriod.Gateway::class,
         SynchronizeFavouriteEvents.EventsProvider::class,

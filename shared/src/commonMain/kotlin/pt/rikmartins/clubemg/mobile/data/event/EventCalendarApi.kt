@@ -8,11 +8,24 @@ import io.ktor.client.plugins.resources.get
 import io.ktor.resources.Resource
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flattenMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.LocalDateTime
@@ -20,6 +33,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -33,7 +47,11 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
+import kotlin.collections.map
+import kotlin.collections.plus
 import kotlin.time.Instant
 
 class EventCalendarApi(
@@ -41,46 +59,128 @@ class EventCalendarApi(
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : EventRepository.EventSource {
 
-    override suspend fun getEventsInRange(dateRange: LocalDateRange): List<CalendarEvent> = coroutineScope {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override suspend fun getEventsInRangeFlow(dateRange: LocalDateRange): Flow<EventRepository.EventsInRange> {
         val startDateAsParam = dateRange.start.atTime(0, 0).asEventDate()
         val endDateAsParam = dateRange.endInclusive.atTime(23, 59, 59, 999_999_999).asEventDate()
 
-        val events = buildList {
+        _refreshingDetail.update { it.copy(dateRanges = it.dateRanges.plusElement(dateRange)) }
+        return channelFlow {
             val headPage = client.get(
                 EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)
             ).body<EventResponse>()
-            add(headPage)
+            send(1 to headPage)
 
-            headPage.totalPages.takeIf { it > 1 }?.let { 2..it }
-                ?.map {
-                    async(defaultDispatcher) {
-                        client.get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = it))
-                            .body<EventResponse>()
+            for (page in 2..headPage.totalPages) launch {
+                val response = client
+                    .get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = page))
+                    .body<EventResponse>()
+                send(page to response)
+            }
+        }.flowOn(defaultDispatcher)
+            // Build map of pages to their response
+            .scan(emptyMap<Int, ResponseWithEstimatedLimits>()) { acc, (page, response) ->
+                val startOfRange: LocalDate? =
+                    if (page <= 1) dateRange.start
+                    else acc[page - 1]?.endOfRange?.plus(DatePeriod(days = 1))?.let { maxOf(it, dateRange.start) }
+                val endOfRange: LocalDate =
+                    if (page >= response.totalPages) dateRange.endInclusive
+                    else minOf(dateRange.endInclusive, response.events.last().endDate.asLocalDateTime().date)
+
+                buildMap {
+                    putAll(acc)
+                    val nextOne = this[page + 1]
+                    if (nextOne != null) {
+                        this[page + 1] = nextOne
+                            .copy(startOfRange = maxOf(endOfRange.plus(DatePeriod(days = 1)), dateRange.start))
                     }
+                    put(
+                        page, ResponseWithEstimatedLimits(
+                            page = page,
+                            eventResponse = response,
+                            startOfRange = startOfRange,
+                            endOfRange = endOfRange
+                        )
+                    )
                 }
-                ?.awaitAll()
-                ?.let { addAll(it) }
-        }.flatMap { it.events }.distinctBy { it.id }
-
-        events.map { event -> event.asApiCalendarEvent() }
+            }
+            // Build a pair of values holding the previous emission of the map and the current one
+            .runningFold(emptySet<Pair<ResponseWithEstimatedLimits, ResponseWithEstimatedLimits?>>()) { acc, value ->
+                value.map { (page, value) -> value to acc.firstOrNull { it.first.page == page }?.first }.toSet()
+            }
+            // Compare previous and current, and if current is complete while previous is incomplete, emit current
+            .map { pairs ->
+                flow {
+                    pairs.filter { (newest, oldest) ->
+                        newest.startOfRange != null && newest.endOfRange != null &&
+                                (oldest == null || oldest.startOfRange == null || oldest.endOfRange == null)
+                    }
+                        .map { (newest, _) ->
+                            emit(
+                                ApiEventsInRange(
+                                    events = newest.eventResponse.events.map { it.asApiCalendarEvent() },
+                                    dateRange = newest.startOfRange!!..newest.endOfRange!!
+                                )
+                            )
+                        }
+                }
+            }.flattenMerge()
+            .onCompletion { _refreshingDetail.update { it.copy(dateRanges = it.dateRanges.minusElement(dateRange)) } }
     }
 
+    private data class ApiEventsInRange(
+        override val events: List<CalendarEvent>,
+        override val dateRange: LocalDateRange
+    ) : EventRepository.EventsInRange
+
+    private data class ResponseWithEstimatedLimits(
+        val page: Int,
+        val eventResponse: EventResponse,
+        val startOfRange: LocalDate? = null,
+        val endOfRange: LocalDate? = null,
+    )
+
+
     override suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent> = supervisorScope {
-        eventsIds.mapNotNull { it.toIntOrNull() }
-            .map { eventId ->
+        _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds + eventsIds) }
+        try {
+            eventsIds.mapNotNull { it.toIntOrNull() }.map { eventId ->
                 async {
                     try {
-                        client.get(EventsResource.Id(id = eventId)).body<EventItem>()
-                            .asApiCalendarEvent()
+                        client.get(EventsResource.Id(id = eventId)).body<EventItem>().asApiCalendarEvent()
                     } catch (e: Exception) {
                         Logger.e("Failed to fetch or map event with ID: $eventId", e)
                         null
                     }
                 }
             }
-            .awaitAll()
-            .filterNotNull()
+                .awaitAll()
+                .filterNotNull()
+        } finally {
+            _refreshingDetail.update { refreshingDetail ->
+                // Iteratively to guarantee that only one copy is removed
+                val mutable = refreshingDetail.singularEventIds.toMutableList()
+                eventsIds.map { mutable.remove(it) }
+                refreshingDetail.copy(singularEventIds = mutable)
+            }
+        }
     }
+
+    private suspend fun getEventById(eventId: Int): EventItem? {
+        val stringId = eventId.toString()
+        return try {
+            _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds + stringId) }
+            client.get(EventsResource.Id(id = eventId)).body<EventItem>()
+        } catch (e: Exception) {
+            Logger.e("Failed to fetch or map event with ID: $eventId", e)
+            null
+        } finally {
+            _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds - stringId) }
+        }
+    }
+
+    private val _refreshingDetail = MutableStateFlow(ApiRefreshingDetail())
+    override val refreshingDetail: Flow<EventRepository.RefreshingDetail> = _refreshingDetail
 
     override suspend fun getTimeZone(): TimeZone {
         TODO("Not yet implemented")
@@ -103,8 +203,26 @@ class EventCalendarApi(
                     add(this@run.asEventImage(null))
                     sizes.forEach { (key, value) -> add(value.asEventImage(key)) }
                 }
-            }.orEmpty()
+            }.orEmpty(),
+            eventStatusType = linkedData?.eventStatus?.asEventStatusType(),
+            eventAttendanceMode = linkedData?.eventAttendanceMode?.asEventAttendanceMode(),
         )
+    }
+
+    private fun String.asEventStatusType() = when {
+        endsWith("EventCancelled") -> EventStatusType.Cancelled
+        endsWith("EventMovedOnline") -> EventStatusType.MovedOnline
+        endsWith("EventPostponed") -> EventStatusType.Postponed
+        endsWith("EventRescheduled") -> EventStatusType.Rescheduled
+        endsWith("EventScheduled") -> EventStatusType.Scheduled
+        else -> null
+    }
+
+    private fun String.asEventAttendanceMode() = when {
+        endsWith("OnlineEventAttendanceMode") -> EventAttendanceMode.Online
+        endsWith("OfflineEventAttendanceMode") -> EventAttendanceMode.Offline
+        endsWith("MixedEventAttendanceMode") -> EventAttendanceMode.Mixed
+        else -> null
     }
 
     private fun LocalDateTime.asEventDate(): String = format(EVENT_DATE_TIME_FORMAT)
@@ -134,6 +252,8 @@ class EventCalendarApi(
         override val endDate: Instant,
         override val enrollmentUrl: String,
         override val images: List<ApiEventImage>,
+        override val eventStatusType: EventStatusType?,
+        override val eventAttendanceMode: EventAttendanceMode?,
     ) : CalendarEvent
 
     private data class ApiEventImage(
@@ -143,6 +263,11 @@ class EventCalendarApi(
         override val height: Int,
         override val fileSize: Int,
     ) : EventImage
+
+    private data class ApiRefreshingDetail(
+        override val singularEventIds: List<String> = emptyList(),
+        override val dateRanges: List<LocalDateRange> = emptyList(),
+    ) : EventRepository.RefreshingDetail
 
     @Serializable
     @Resource("/events")
@@ -215,6 +340,7 @@ class EventCalendarApi(
         val website: String, // The cost details of the event
         @Serializable(with = ImageStructureItemBooleanSerializer::class)
         val image: ImageStructureItem?,
+        @SerialName("json_ld") val linkedData: LinkedData? = null,
     )
 
     private interface ImageStructure {
@@ -241,6 +367,12 @@ class EventCalendarApi(
         @SerialName("filesize") override val fileSize: Int,
         override val url: String
     ) : ImageStructure
+
+    @Serializable
+    private data class LinkedData(
+        val eventAttendanceMode: String,
+        val eventStatus: String,
+    )
 
     @Serializable
     private data class EventResponse(

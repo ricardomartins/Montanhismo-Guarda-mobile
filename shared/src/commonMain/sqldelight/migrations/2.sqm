@@ -1,0 +1,2 @@
+ALTER TABLE CalendarEvent ADD COLUMN eventStatusType TEXT;
+ALTER TABLE CalendarEvent ADD COLUMN eventAttendanceMode TEXT;

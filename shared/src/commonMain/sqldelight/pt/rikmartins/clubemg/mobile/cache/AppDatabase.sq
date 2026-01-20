@@ -1,5 +1,7 @@
 import kotlin.time.Instant;
 import kotlinx.datetime.LocalDate;
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode;
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType;
 
 PRAGMA recursive_triggers = 1;
 
@@ -45,7 +47,9 @@ CREATE TABLE CalendarEvent (
     url TEXT NOT NULL,
     startDate INTEGER AS Instant NOT NULL,
     endDate INTEGER AS Instant NOT NULL,
-    enrollmentUrl TEXT NOT NULL
+    enrollmentUrl TEXT NOT NULL,
+    eventStatusType TEXT AS EventStatusType,
+    eventAttendanceMode TEXT AS EventAttendanceMode
 );
 
 selectEventsInRange:

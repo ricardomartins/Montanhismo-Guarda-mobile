@@ -27,7 +27,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
@@ -41,7 +41,7 @@ class CalendarViewModel(
     observeCalendarCurrentDay: ObserveCalendarCurrentDay,
     observeAllEvents: ObserveAllEvents,
     private val getCalendarTimeZone: GetCalendarTimeZone,
-    observeRefreshingRanges: ObserveRefreshingRanges,
+    observeRefreshing: ObserveRefreshing,
     private val refreshPeriod: RefreshPeriod,
     private val setBookmarkOfEventId: SetBookmarkOfEventId,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
@@ -83,7 +83,7 @@ class CalendarViewModel(
             newStart..newEnd to currentDay
         },
         observeAllEvents(),
-        observeRefreshingRanges().map { it.isNotEmpty() }.debounce(250.milliseconds),
+        observeRefreshing().map { it }.debounce(250.milliseconds),
     ) { (weekLimits, currentDay), events, isRefreshing ->
         val calendarTimeZone = getCalendarTimeZone()
 

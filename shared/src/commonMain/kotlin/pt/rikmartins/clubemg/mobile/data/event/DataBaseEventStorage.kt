@@ -20,8 +20,10 @@ import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.collections.map
@@ -103,12 +105,12 @@ class DataBaseEventStorage(
         queries.deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
 
         queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-        eventsToUpsert.forEach { calendarEvent ->
-            queries.replaceEvent(calendarEvent.asCacheCalendarEvent())
-            calendarEvent.images.forEach {
-                queries.replaceEventImage(it.asCacheEventImage(calendarEvent.id))
-            }
-        }
+        eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
+    }
+
+    private fun replaceSingleEvent(event: CalendarEvent) {
+        queries.replaceEvent(event.asCacheCalendarEvent())
+        event.images.forEach { queries.replaceEventImage(it.asCacheEventImage(event.id)) }
     }
 
     private fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
@@ -161,32 +163,30 @@ class DataBaseEventStorage(
         )
     }
 
-    override fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff> = buildSet {
-        queries.transaction {
-            val existingEvents = queries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
+    override suspend fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff> =
+        withContext(defaultDispatcher) {
+            buildSet {
+                queries.transaction {
+                    val existingEvents = queries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
 
-            val eventsToUpsert = calendarEvents.toMutableList()
+                    val eventsToUpsert = calendarEvents.toMutableList()
 
-            existingEvents.forEach { existingEvent ->
-                val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
+                    existingEvents.forEach { existingEvent ->
+                        val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
 
-                if (correspondingNewEvent != null) {
-                    add(existingEvent diffWith correspondingNewEvent)
+                        if (correspondingNewEvent != null) {
+                            add(existingEvent diffWith correspondingNewEvent)
 
-                    if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate)
-                        eventsToUpsert.remove(correspondingNewEvent)
-                }
-            }
+                            if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate)
+                                eventsToUpsert.remove(correspondingNewEvent)
+                        }
+                    }
 
-            queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-            eventsToUpsert.forEach { calendarEvent ->
-                queries.replaceEvent(calendarEvent.asCacheCalendarEvent())
-                calendarEvent.images.forEach {
-                    queries.replaceEventImage(it.asCacheEventImage(calendarEvent.id))
+                    queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
+                    eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
                 }
             }
         }
-    }
 
     private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent) = EventDiff(
         StorageCalendarEvent(
@@ -198,7 +198,9 @@ class DataBaseEventStorage(
             startDate = startDate,
             endDate = endDate,
             enrollmentUrl = enrollmentUrl,
-            images = emptyList()
+            images = emptyList(),
+            eventStatusType = eventStatusType,
+            eventAttendanceMode = eventAttendanceMode,
         ),
         newEvent = other
     )
@@ -222,6 +224,8 @@ class DataBaseEventStorage(
         override val endDate: Instant,
         override val enrollmentUrl: String,
         override val images: List<StorageEventImage>,
+        override val eventStatusType: EventStatusType?,
+        override val eventAttendanceMode: EventAttendanceMode?,
     ) : CalendarEvent
 
     private fun CalendarEvent.asCacheCalendarEvent() = CacheCalendarEvent(
@@ -233,6 +237,8 @@ class DataBaseEventStorage(
         startDate = startDate,
         endDate = endDate,
         enrollmentUrl = enrollmentUrl,
+        eventStatusType = eventStatusType,
+        eventAttendanceMode = eventAttendanceMode,
     )
 
     private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
@@ -272,7 +278,9 @@ class DataBaseEventStorage(
                             fileSize = eventImage.fileSize.toInt(),
                         )
                     } else null
-                }
+                },
+                eventStatusType = calendarEvent.eventStatusType,
+                eventAttendanceMode = calendarEvent.eventAttendanceMode,
             )
         }
 

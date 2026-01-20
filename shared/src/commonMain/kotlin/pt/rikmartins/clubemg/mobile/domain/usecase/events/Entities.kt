@@ -1,5 +1,6 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
+import kotlinx.datetime.LocalDateRange
 import kotlin.time.Instant
 
 interface CalendarEvent {
@@ -12,6 +13,8 @@ interface CalendarEvent {
     val endDate: Instant
     val enrollmentUrl: String
     val images: List<EventImage>
+    val eventStatusType: EventStatusType?
+    val eventAttendanceMode: EventAttendanceMode?
 }
 
 interface EventImage {
@@ -20,6 +23,14 @@ interface EventImage {
     val width: Int
     val height: Int
     val fileSize: Int
+}
+
+enum class EventStatusType {
+    Cancelled, MovedOnline, Postponed, Rescheduled, Scheduled;
+}
+
+enum class EventAttendanceMode {
+    Mixed, Offline, Online;
 }
 
 interface MergedEvent : CalendarEvent {

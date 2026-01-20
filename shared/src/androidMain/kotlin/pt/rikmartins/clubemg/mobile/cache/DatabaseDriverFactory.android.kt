@@ -5,9 +5,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 
-actual class DatabaseDriverFactory(private val context: Context) {
+class AndroidDriverFactory(private val context: Context) : SqlDriverFactory {
 
-    actual fun createDriver(): SqlDriver = AndroidSqliteDriver(
+    override fun createDriver(): SqlDriver = AndroidSqliteDriver(
         schema = AppDatabase.Schema,
         context = context.applicationContext,
         name = DATABASE_NAME,

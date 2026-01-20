@@ -22,6 +22,8 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
                     endDate = event.endDate,
                     enrollmentUrl = event.enrollmentUrl,
                     images = event.images,
+                    eventStatusType = event.eventStatusType,
+                    eventAttendanceMode = event.eventAttendanceMode,
                     isBookmarked = favouriteEventsIds.remove(event.id),
                 )
             }
@@ -46,5 +48,7 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
         override val enrollmentUrl: String,
         override val images: List<EventImage>,
         override val isBookmarked: Boolean,
+        override val eventStatusType: EventStatusType?,
+        override val eventAttendanceMode: EventAttendanceMode?,
     ) : MergedEvent
 }

@@ -2,14 +2,12 @@ package pt.rikmartins.clubemg.mobile.data.event
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.DatePeriod
@@ -22,7 +20,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshingRanges
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
@@ -33,13 +31,13 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class, FlowPreview::class, ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
 class EventRepository(
     private val eventSource: EventSource,
     private val eventStorage: EventStorage,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
-    ObserveRefreshingRanges.Gateway, RefreshPeriod.Gateway, SetRelevantDatePeriod.Gateway,
+    ObserveRefreshing.Gateway, RefreshPeriod.Gateway, SetRelevantDatePeriod.Gateway,
     SynchronizeFavouriteEvents.EventsProvider {
 
     override suspend fun setRelevantDatePeriod(period: LocalDateRange) = refreshStaleEvents(period)
@@ -51,7 +49,8 @@ class EventRepository(
     override val events: Flow<List<CalendarEvent>>
         get() = eventStorage.events
 
-    override val refreshingRanges = MutableStateFlow(emptySet<LocalDateRange>())
+    override val refreshingDetail = eventSource.refreshingDetail
+        .map { it.singularEventIds.isNotEmpty() || it.dateRanges.isNotEmpty() }
 
     private val refreshMutex = Mutex()
 
@@ -67,25 +66,15 @@ class EventRepository(
                 .filter { it != LocalDateRange.EMPTY }
                 .asFlow()
                 .flatMapMerge(concurrency = 3) { range -> flowOf(refreshRange(range, false)) }
-                    .collect()
+                .collect()
         }
     }
 
     private suspend fun refreshRange(range: LocalDateRange, withLock: Boolean = true) {
         suspend fun execute() {
-            refreshingRanges.update { it.plusElement(range) }
-            try {
-                logger.d { "Refreshing range $range" }
-                val events = eventSource.getEventsInRange(range)
-                logger.v { "Fetched ${events.size} events for range $range. Saving..." }
-                eventStorage.saveEventsAndRanges(events, range)
-                logger.v { "Successfully finished refreshing range $range" }
-            } catch (e: Exception) {
-                logger.e(e) { "Failed to refresh range $range" }
-                throw e
-            } finally {
-                refreshingRanges.update { it.minusElement(range) }
-            }
+            eventSource.getEventsInRangeFlow(range)
+                .map { eventStorage.saveEventsAndRanges(it.events, it.dateRange) }
+                .collect()
         }
 
         if (withLock) refreshMutex.withLock { execute() } else execute()
@@ -178,19 +167,15 @@ class EventRepository(
 
     interface EventSource {
         suspend fun getTimeZone(): TimeZone
-
-        suspend fun getEventsInRange(dateRange: LocalDateRange): List<CalendarEvent>
-
+        suspend fun getEventsInRangeFlow(dateRange: LocalDateRange): Flow<EventsInRange>
         suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent>
+        val refreshingDetail: Flow<RefreshingDetail>
     }
 
     interface EventStorage {
         val events: Flow<List<CalendarEvent>>
-
         suspend fun getTimeZone(): TimeZone
-
         suspend fun setTimeZone(timezone: TimeZone)
-
         suspend fun getDateRangeTimestampsOf(dateRange: LocalDateRange): Collection<DateRangeTimestamp>
 
         suspend fun saveEventsAndRanges(
@@ -199,7 +184,17 @@ class EventRepository(
             timestamp: Instant = Clock.System.now()
         )
 
-        fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff>
+        suspend fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff>
+    }
+
+    interface EventsInRange {
+        val events: List<CalendarEvent>
+        val dateRange: LocalDateRange
+    }
+
+    interface RefreshingDetail {
+        val singularEventIds: Collection<String>
+        val dateRanges: Collection<LocalDateRange>
     }
 
     data class DateRangeTimestamp(

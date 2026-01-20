@@ -8,7 +8,7 @@ internal val uiModule = module {
         observeCalendarCurrentDay = get(),
         observeAllEvents = get(),
         getCalendarTimeZone = get(),
-        observeRefreshingRanges = get(),
+        observeRefreshing = get(),
         refreshPeriod = get(),
         setBookmarkOfEventId = get(),
     ) }
