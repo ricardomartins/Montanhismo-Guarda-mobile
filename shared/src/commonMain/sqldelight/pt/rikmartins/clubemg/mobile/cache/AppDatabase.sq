@@ -64,8 +64,18 @@ FROM CalendarEvent
 WHERE CalendarEvent.id IN ?;
 
 replaceEvent:
-INSERT OR REPLACE INTO CalendarEvent
-VALUES ?;
+INSERT OR REPLACE INTO CalendarEvent (id, creationDate, modifiedDate, title, url, startDate, endDate, enrollmentUrl)
+VALUES (:id, :creationDate, :modifiedDate, :title, :url, :startDate, :endDate, :enrollmentUrl);
+
+updateEventStatusType:
+UPDATE CalendarEvent
+SET eventStatusType = :eventStatusType
+WHERE id == :id;
+
+updateEventAttendanceMode:
+UPDATE CalendarEvent
+SET eventAttendanceMode = :eventAttendanceMode
+WHERE id == :id;
 
 deleteEvent:
 DELETE FROM CalendarEvent

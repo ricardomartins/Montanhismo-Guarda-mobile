@@ -16,6 +16,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.cache.AppDatabase
+import pt.rikmartins.clubemg.mobile.cache.AppDatabaseQueries
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
@@ -70,19 +71,21 @@ class DataBaseEventStorage(
         dateRange: LocalDateRange,
         timestamp: Instant,
     ) = withContext(defaultDispatcher) {
-        val timeZone = TimeZone.of(
-            queries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_
-                ?: DEFAULT_API_TIMEZONE
-        )
+        val timeZone =
+            TimeZone.of(queries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
 
         queries.transaction {
-            saveEvents(events, dateRange, timeZone)
+            queries.saveEvents(events, dateRange, timeZone)
             saveDateRangeWithTimestamp(dateRange, timestamp)
         }
     }
 
-    private fun saveEvents(events: List<CalendarEvent>, dateRange: LocalDateRange, timeZone: TimeZone) {
-        val existingEvents = queries.selectEventsInRange(
+    private fun AppDatabaseQueries.saveEvents(
+        events: List<CalendarEvent>,
+        dateRange: LocalDateRange,
+        timeZone: TimeZone,
+    ) {
+        val existingEvents = selectEventsInRange(
             rangeStart = dateRange.start.atStartOfDayIn(timeZone),
             rangeEnd = dateRange.endInclusive.atEndOfDayIn(timeZone),
         ).executeAsList()
@@ -102,15 +105,17 @@ class DataBaseEventStorage(
             }
         }
 
-        queries.deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
+        deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
 
-        queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
+        deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
         eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
     }
 
-    private fun replaceSingleEvent(event: CalendarEvent) {
-        queries.replaceEvent(event.asCacheCalendarEvent())
-        event.images.forEach { queries.replaceEventImage(it.asCacheEventImage(event.id)) }
+    private fun AppDatabaseQueries.replaceSingleEvent(event: CalendarEvent) {
+        replaceEvent(event.id, event.creationDate, event.modifiedDate, event.title, event.url, event.startDate, event.endDate, event.enrollmentUrl)
+        if (event.eventStatusType != null) updateEventStatusType(event.eventStatusType, event.id)
+        if (event.eventAttendanceMode != null) updateEventAttendanceMode(event.eventAttendanceMode, event.id)
+        event.images.forEach { replaceEventImage(it.asCacheEventImage(event.id)) }
     }
 
     private fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
@@ -183,7 +188,7 @@ class DataBaseEventStorage(
                     }
 
                     queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-                    eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
+                    eventsToUpsert.forEach { calendarEvent -> queries.replaceSingleEvent(calendarEvent) }
                 }
             }
         }
@@ -227,19 +232,6 @@ class DataBaseEventStorage(
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
     ) : CalendarEvent
-
-    private fun CalendarEvent.asCacheCalendarEvent() = CacheCalendarEvent(
-        id = id,
-        creationDate = creationDate,
-        modifiedDate = modifiedDate,
-        title = title,
-        url = url,
-        startDate = startDate,
-        endDate = endDate,
-        enrollmentUrl = enrollmentUrl,
-        eventStatusType = eventStatusType,
-        eventAttendanceMode = eventAttendanceMode,
-    )
 
     private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
         calendarEventId = eventId,
