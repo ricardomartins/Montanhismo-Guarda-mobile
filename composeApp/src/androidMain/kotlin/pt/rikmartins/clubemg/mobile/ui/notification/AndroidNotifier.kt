@@ -24,42 +24,39 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 class AndroidNotifier(private val context: Context) : SynchronizeFavouriteEvents.Notifier {
 
-    override suspend fun notifyFavouriteEventsChanged(eventsDiffs: Collection<EventDiff>) {
-        val notificationManager by lazy { NotificationManagerCompat.from(context) }
+    private val notificationManager by lazy { NotificationManagerCompat.from(context) }
 
-        eventsDiffs.flatMap { eventDiff ->
-            buildList {
-                // Relevant
-                if (false) { // TODO: Add event cancellation logic
-                    add(ClubeMGNotification.EventCanceled)
-                    return@buildList
-                }
-                if (false) { // TODO: Add event postpone logic
-                    add(ClubeMGNotification.EventPostponed)
-                }
-                if (eventDiff.startDateHasChanged() || eventDiff.endDateHasChanged())
-                    add(ClubeMGNotification.EventRescheduled)
-
-                if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty())
-                    add(ClubeMGNotification.EventEnrollmentStarted)
-
-                // Irrelevant
-                if (eventDiff.titleHasChanged()) add(ClubeMGNotification.SingleEventRenamed)
-                if (eventDiff.modifiedDateHasChanged() && isEmpty()) add(ClubeMGNotification.SingleEventOtherChanges)
-            }
-                .map { it.asNotification(context, eventDiff) }
-        }
-            .forEach { notification ->
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                    PackageManager.PERMISSION_GRANTED
-                ) notificationManager.notify(notification.hashCode(), notification)
-            }
+    override suspend fun notifySingleEventCanceled(eventDiff: EventDiff) {
+        ClubeMGNotification.EventCanceled.notifyWith(eventDiff)
     }
 
-    private fun EventDiff.startDateHasChanged(): Boolean = oldEvent.startDate != newEvent.startDate
-    private fun EventDiff.endDateHasChanged(): Boolean = oldEvent.endDate != newEvent.endDate
-    private fun EventDiff.modifiedDateHasChanged(): Boolean = oldEvent.modifiedDate != newEvent.modifiedDate
-    private fun EventDiff.titleHasChanged(): Boolean = oldEvent.title != newEvent.title
+    override suspend fun notifySingleEventPostponed(eventDiff: EventDiff) {
+        ClubeMGNotification.EventPostponed.notifyWith(eventDiff)
+    }
+
+    override suspend fun notifySingleEventRescheduled(eventDiff: EventDiff) {
+        ClubeMGNotification.EventRescheduled.notifyWith(eventDiff)
+    }
+
+    override suspend fun notifySingleEventEnrollmentStarted(eventDiff: EventDiff) {
+        ClubeMGNotification.EventEnrollmentStarted.notifyWith(eventDiff)
+    }
+
+    override suspend fun notifySingleEventRenamed(eventDiff: EventDiff) {
+        ClubeMGNotification.SingleEventRenamed.notifyWith(eventDiff)
+    }
+
+    override suspend fun notifySingleEventOtherChanges(eventDiff: EventDiff) {
+        ClubeMGNotification.SingleEventOtherChanges.notifyWith(eventDiff)
+    }
+
+    private fun ClubeMGNotification.notifyWith(eventDiff: EventDiff) {
+        val notification = asNotification(context, eventDiff)
+
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) notificationManager.notify(notification.hashCode(), notification)
+    }
 }
 
 fun ClubeMGApp.setupNotificationChannels() {

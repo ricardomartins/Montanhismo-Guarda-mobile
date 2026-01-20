@@ -18,9 +18,45 @@ class SynchronizeFavouriteEvents(
         logger.d { "Detected events changes: $eventDiffs" }
         if (eventDiffs.isNotEmpty()) {
             logger.v { "Notifying favourite events changes" }
-            notifier.notifyFavouriteEventsChanged(eventDiffs)
-        } else logger.v { "No notification of favourite events changes" }
+
+            eventDiffs.forEach { eventDiff ->
+                // Relevant
+                if (false) { // TODO: Add event cancellation logic
+                    notifier.notifySingleEventCanceled(eventDiff)
+                } else {
+                    var haveNotified = false
+
+                    if (false) { // TODO: Add event postpone logic
+                        notifier.notifySingleEventPostponed(eventDiff)
+                        haveNotified = true
+                    }
+                    if (eventDiff.startDateHasChanged() || eventDiff.endDateHasChanged()) {
+                        notifier.notifySingleEventRescheduled(eventDiff)
+                        haveNotified = true
+                    }
+
+                    if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty()) {
+                        notifier.notifySingleEventEnrollmentStarted(eventDiff)
+                        haveNotified = true
+                    }
+
+                    // Irrelevant
+                    if (eventDiff.titleHasChanged()) {
+                        notifier.notifySingleEventRenamed(eventDiff)
+                        haveNotified = true
+                    }
+                    if (eventDiff.modifiedDateHasChanged() && !haveNotified)
+                        notifier.notifySingleEventOtherChanges(eventDiff)
+                }
+
+            }
+        } else logger.v { "No notification of bookmarked events changes" }
     }
+
+    private fun EventDiff.startDateHasChanged(): Boolean = oldEvent.startDate != newEvent.startDate
+    private fun EventDiff.endDateHasChanged(): Boolean = oldEvent.endDate != newEvent.endDate
+    private fun EventDiff.modifiedDateHasChanged(): Boolean = oldEvent.modifiedDate != newEvent.modifiedDate
+    private fun EventDiff.titleHasChanged(): Boolean = oldEvent.title != newEvent.title
 
     interface BookmarkProvider {
         suspend fun getAllBookmarkedEventsIds(): Collection<String>
@@ -31,6 +67,14 @@ class SynchronizeFavouriteEvents(
     }
 
     interface Notifier {
-        suspend fun notifyFavouriteEventsChanged(eventsDiffs: Collection<EventDiff>)
+        // Relevant
+        suspend fun notifySingleEventCanceled(eventDiff: EventDiff)
+        suspend fun notifySingleEventPostponed(eventDiff: EventDiff)
+        suspend fun notifySingleEventRescheduled(eventDiff: EventDiff)
+        suspend fun notifySingleEventEnrollmentStarted(eventDiff: EventDiff)
+
+        // Irrelevant
+        suspend fun notifySingleEventRenamed(eventDiff: EventDiff)
+        suspend fun notifySingleEventOtherChanges(eventDiff: EventDiff)
     }
 }
