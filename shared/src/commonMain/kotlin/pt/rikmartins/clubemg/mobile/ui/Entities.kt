@@ -10,7 +10,6 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 data class Model(
     val weeksOfEvents: List<WeekOfEvents>,
     val today: LocalDate?,
-    val isRefreshing: Boolean,
 )
 
 data class WeekOfEvents(

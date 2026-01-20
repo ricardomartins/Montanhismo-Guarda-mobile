@@ -1,6 +1,5 @@
 package pt.rikmartins.clubemg.mobile.ui
 
-import co.touchlab.kermit.Logger
 import com.rickclephas.kmp.observableviewmodel.ViewModel
 import com.rickclephas.kmp.observableviewmodel.launch
 import com.rickclephas.kmp.observableviewmodel.stateIn
@@ -14,7 +13,6 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
@@ -31,7 +29,6 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.ui.WeekUtils.getMondaysInRange
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
@@ -46,7 +43,6 @@ class CalendarViewModel(
     private val refreshPeriod: RefreshPeriod,
     private val setBookmarkOfEventId: SetBookmarkOfEventId,
     private val refreshEvent: RefreshEvent,
-    private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ViewModel() {
 
     private val visibleDates = MutableStateFlow<LocalDateRange?>(null)
@@ -71,6 +67,15 @@ class CalendarViewModel(
         .filter { it != LocalDateRange.EMPTY }
         .distinctUntilChanged { old, new -> old.start == new.start && old.endInclusive == new.endInclusive }
 
+    private val refreshing = observeRefreshing()
+
+    val calendarRefreshing = refreshing.map { it.dateRanges.isNotEmpty() }.distinctUntilChanged()
+        .debounce(200.milliseconds)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val refreshingEventIds = refreshing.map { it.singularEventIds }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val model = combine(
         combine(datesThatWereEverVisible.sample(500), calendarCurrentDay) { weekLimits, currentDay ->
             val newStart = maxOf(
@@ -85,8 +90,7 @@ class CalendarViewModel(
             newStart..newEnd to currentDay
         },
         observeAllEvents(),
-        observeRefreshing().map { it.dateRanges.isNotEmpty() }.debounce(500.milliseconds),
-    ) { (weekLimits, currentDay), events, isRefreshing ->
+    ) { (weekLimits, currentDay), events ->
         val calendarTimeZone = getCalendarTimeZone()
 
         val mondays = getMondaysInRange(weekLimits)
@@ -113,7 +117,7 @@ class CalendarViewModel(
         }
             .map { (monday, events) -> WeekOfEvents(monday, events) }
             .sortedBy { it.monday }
-            .let { Model(it, currentDay, isRefreshing) }
+            .let { Model(it, currentDay) }
     }.onStart {
         emitAll(
             calendarCurrentDay
@@ -122,13 +126,11 @@ class CalendarViewModel(
                         weeksOfEvents = getMondaysInRange(currentDay..currentDay.plus(30, DateTimeUnit.DAY))
                             .map { WeekOfEvents(it, emptyList()) },
                         today = currentDay,
-                        isRefreshing = true,
                     )
                 }
                 .take(1)
         )
-    }.onEach { logger.v { "Model: $it" } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null, true))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null))
 
     val selectedEvent = MutableStateFlow<SimplifiedEvent?>(null)
 

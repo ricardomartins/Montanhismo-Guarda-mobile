@@ -50,6 +50,8 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
+    val refreshingCalendar by viewModel.calendarRefreshing.collectAsStateWithLifecycle()
+    val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
 
@@ -103,7 +105,7 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
                     scrollBehavior = scrollBehavior,
                 )
                 AnimatedVisibility(
-                    visible = model.isRefreshing,
+                    visible = refreshingCalendar,
                     enter = expandVertically(),
                     exit = shrinkVertically()
                 ) {
@@ -149,6 +151,7 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
         val selectedEventVal = selectedEvent
         if (selectedEventVal != null) EventActionsDialog(
             event = selectedEventVal,
+            refreshingEventIds = refreshingEventIds,
             navigateToDetails = {
                 navigateToDetails(it)
                 viewModel.unsetSelectedEvent()

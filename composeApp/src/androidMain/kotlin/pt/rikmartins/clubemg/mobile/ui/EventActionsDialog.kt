@@ -7,6 +7,9 @@ import android.os.Build
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
@@ -22,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +55,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EventActionsDialog(
     event: SimplifiedEvent,
+    refreshingEventIds: Collection<String>,
     navigateToDetails: (event: CalendarEvent) -> Unit,
     setBookmarkTo: (Boolean) -> Unit,
     onDismissRequest: () -> Unit,
@@ -182,6 +187,13 @@ fun EventActionsDialog(
                 Button(onClick = { navigateToDetails(event.calendarEvent) }) {
                     Text(stringResource(R.string.visit_page_action))
                 }
+            }
+            AnimatedVisibility(
+                visible = refreshingEventIds.any { it == event.id },
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
     }
