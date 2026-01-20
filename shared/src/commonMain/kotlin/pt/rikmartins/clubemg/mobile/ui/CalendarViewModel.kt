@@ -25,9 +25,10 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetEventsInDatePeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
@@ -37,13 +38,14 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class, FlowPreview::class)
 class CalendarViewModel(
-    private val getEventsInDatePeriod: GetEventsInDatePeriod,
+    private val considerRefreshingPeriod: ConsiderRefreshingPeriod,
     observeCalendarCurrentDay: ObserveCalendarCurrentDay,
     observeAllEvents: ObserveAllEvents,
     private val getCalendarTimeZone: GetCalendarTimeZone,
     observeRefreshing: ObserveRefreshing,
     private val refreshPeriod: RefreshPeriod,
     private val setBookmarkOfEventId: SetBookmarkOfEventId,
+    private val refreshEvent: RefreshEvent,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ViewModel() {
 
@@ -53,7 +55,7 @@ class CalendarViewModel(
     init {
         viewModelScope.launch {
             filteredVisibleDates.collect {
-                getEventsInDatePeriod(
+                considerRefreshingPeriod(
                     it.start.minus(1, DateTimeUnit.MONTH)..it.endInclusive.plus(3, DateTimeUnit.MONTH)
                 )
             }
@@ -131,6 +133,7 @@ class CalendarViewModel(
     val selectedEvent = MutableStateFlow<SimplifiedEvent?>(null)
 
     fun setSelectedEvent(event: SimplifiedEvent) {
+        viewModelScope.launch { refreshEvent(event.id) }
         selectedEvent.value = event
     }
 

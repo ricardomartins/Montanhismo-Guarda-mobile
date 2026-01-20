@@ -23,7 +23,8 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetEventsInDatePeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
@@ -38,10 +39,10 @@ class EventRepository(
     private val eventStorage: EventStorage,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
-    ObserveRefreshing.Gateway, RefreshPeriod.Gateway, GetEventsInDatePeriod.EventProvider,
-    SynchronizeFavouriteEvents.EventsProvider {
+    ObserveRefreshing.Gateway, RefreshPeriod.Gateway, ConsiderRefreshingPeriod.EventProvider,
+    SynchronizeFavouriteEvents.EventsProvider, RefreshEvent.EventProvider {
 
-    override suspend fun getEventsBookmarkAwareIn(period: LocalDateRange) = refreshStaleEvents(period)
+    override suspend fun considerRefreshingPeriod(period: LocalDateRange) = refreshStaleEvents(period)
 
     override suspend fun refreshPeriod(period: LocalDateRange) = refreshRange(period)
 
@@ -163,6 +164,11 @@ class EventRepository(
     override suspend fun refreshEventsForDiff(eventIds: Collection<String>): Collection<EventDiff> {
         val freshCalendarEvents = eventSource.getEventsById(eventIds)
         return eventStorage.saveEventsForDiff(freshCalendarEvents)
+    }
+
+    override suspend fun refreshEvent(eventId: String) {
+        val freshCalendarEvents = eventSource.getEventsById(setOf(eventId))
+        eventStorage.saveEventsForDiff(freshCalendarEvents) // Ignore for now
     }
 
     interface EventSource {

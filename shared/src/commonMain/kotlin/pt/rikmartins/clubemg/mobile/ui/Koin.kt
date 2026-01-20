@@ -4,13 +4,14 @@ import org.koin.dsl.module
 
 internal val uiModule = module {
     factory { CalendarViewModel(
-        getEventsInDatePeriod = get(),
+        considerRefreshingPeriod = get(),
         observeCalendarCurrentDay = get(),
         observeAllEvents = get(),
         getCalendarTimeZone = get(),
         observeRefreshing = get(),
         refreshPeriod = get(),
         setBookmarkOfEventId = get(),
+        refreshEvent = get(),
     ) }
 //    factory { DetailViewModel(get()) }
 }
