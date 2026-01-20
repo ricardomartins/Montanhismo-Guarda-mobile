@@ -19,14 +19,14 @@ class SynchronizeFavouriteEvents(
         if (eventDiffs.isNotEmpty()) {
             logger.v { "Notifying favourite events changes" }
 
-            eventDiffs.forEach { eventDiff ->
+            eventDiffs.filter { it.modifiedDateHasChanged() }.forEach { eventDiff ->
                 // Relevant
-                if (false) { // TODO: Add event cancellation logic
+                if (eventDiff.wasCanceled()) {
                     notifier.notifySingleEventCanceled(eventDiff)
                 } else {
                     var haveNotified = false
 
-                    if (false) { // TODO: Add event postpone logic
+                    if (eventDiff.wasPostponed()) {
                         notifier.notifySingleEventPostponed(eventDiff)
                         haveNotified = true
                     }
@@ -34,7 +34,6 @@ class SynchronizeFavouriteEvents(
                         notifier.notifySingleEventRescheduled(eventDiff)
                         haveNotified = true
                     }
-
                     if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty()) {
                         notifier.notifySingleEventEnrollmentStarted(eventDiff)
                         haveNotified = true
@@ -45,14 +44,16 @@ class SynchronizeFavouriteEvents(
                         notifier.notifySingleEventRenamed(eventDiff)
                         haveNotified = true
                     }
-                    if (eventDiff.modifiedDateHasChanged() && !haveNotified)
-                        notifier.notifySingleEventOtherChanges(eventDiff)
+                    if (!haveNotified) notifier.notifySingleEventOtherChanges(eventDiff)
                 }
-
             }
         } else logger.v { "No notification of bookmarked events changes" }
     }
 
+    private fun EventDiff.wasCanceled(): Boolean = oldEvent.eventStatusType != EventStatusType.Cancelled &&
+            oldEvent.eventStatusType != null && newEvent.eventStatusType == EventStatusType.Cancelled
+    private fun EventDiff.wasPostponed(): Boolean = oldEvent.eventStatusType != EventStatusType.Rescheduled &&
+            oldEvent.eventStatusType != null && newEvent.eventStatusType == EventStatusType.Rescheduled
     private fun EventDiff.startDateHasChanged(): Boolean = oldEvent.startDate != newEvent.startDate
     private fun EventDiff.endDateHasChanged(): Boolean = oldEvent.endDate != newEvent.endDate
     private fun EventDiff.modifiedDateHasChanged(): Boolean = oldEvent.modifiedDate != newEvent.modifiedDate
