@@ -25,7 +25,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetEventsInDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
@@ -37,7 +37,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class, FlowPreview::class)
 class CalendarViewModel(
-    private val setRelevantDatePeriod: SetRelevantDatePeriod,
+    private val getEventsInDatePeriod: GetEventsInDatePeriod,
     observeCalendarCurrentDay: ObserveCalendarCurrentDay,
     observeAllEvents: ObserveAllEvents,
     private val getCalendarTimeZone: GetCalendarTimeZone,
@@ -53,7 +53,7 @@ class CalendarViewModel(
     init {
         viewModelScope.launch {
             filteredVisibleDates.collect {
-                setRelevantDatePeriod(
+                getEventsInDatePeriod(
                     it.start.minus(1, DateTimeUnit.MONTH)..it.endInclusive.plus(3, DateTimeUnit.MONTH)
                 )
             }

@@ -37,6 +37,7 @@ interface MergedEvent : CalendarEvent {
     val isBookmarked: Boolean
 }
 
+// TODO: Turn to an interface
 data class EventDiff(
     val oldEvent: CalendarEvent,
     val newEvent: CalendarEvent,

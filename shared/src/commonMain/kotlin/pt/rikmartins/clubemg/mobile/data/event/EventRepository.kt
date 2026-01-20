@@ -22,7 +22,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetRelevantDatePeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetEventsInDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
@@ -37,10 +37,10 @@ class EventRepository(
     private val eventStorage: EventStorage,
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
-    ObserveRefreshing.Gateway, RefreshPeriod.Gateway, SetRelevantDatePeriod.Gateway,
+    ObserveRefreshing.Gateway, RefreshPeriod.Gateway, GetEventsInDatePeriod.EventProvider,
     SynchronizeFavouriteEvents.EventsProvider {
 
-    override suspend fun setRelevantDatePeriod(period: LocalDateRange) = refreshStaleEvents(period)
+    override suspend fun getEventsBookmarkAwareIn(period: LocalDateRange) = refreshStaleEvents(period)
 
     override suspend fun refreshPeriod(period: LocalDateRange) = refreshRange(period)
 
