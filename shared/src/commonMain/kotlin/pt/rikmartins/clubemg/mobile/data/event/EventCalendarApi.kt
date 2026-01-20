@@ -50,6 +50,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
 import kotlin.collections.map
 import kotlin.collections.plus
 import kotlin.time.Instant
@@ -179,8 +180,8 @@ class EventCalendarApi(
         }
     }
 
-    private val _refreshingDetail = MutableStateFlow(ApiRefreshingDetail())
-    override val refreshingDetail: Flow<EventRepository.RefreshingDetail> = _refreshingDetail
+    private val _refreshingDetail = MutableStateFlow(ApiRefreshState())
+    override val refreshingDetail: Flow<RefreshState> = _refreshingDetail
 
     override suspend fun getTimeZone(): TimeZone {
         TODO("Not yet implemented")
@@ -264,10 +265,10 @@ class EventCalendarApi(
         override val fileSize: Int,
     ) : EventImage
 
-    private data class ApiRefreshingDetail(
+    private data class ApiRefreshState(
         override val singularEventIds: List<String> = emptyList(),
         override val dateRanges: List<LocalDateRange> = emptyList(),
-    ) : EventRepository.RefreshingDetail
+    ) : RefreshState
 
     @Serializable
     @Resource("/events")

@@ -42,3 +42,8 @@ data class EventDiff(
     val oldEvent: CalendarEvent,
     val newEvent: CalendarEvent,
 )
+
+interface RefreshState {
+    val singularEventIds: Collection<String>
+    val dateRanges: Collection<LocalDateRange>
+}

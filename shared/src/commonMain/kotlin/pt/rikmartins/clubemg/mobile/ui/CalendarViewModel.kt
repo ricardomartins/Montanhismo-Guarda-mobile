@@ -83,7 +83,7 @@ class CalendarViewModel(
             newStart..newEnd to currentDay
         },
         observeAllEvents(),
-        observeRefreshing().map { it }.debounce(250.milliseconds),
+        observeRefreshing().map { it.dateRanges.isNotEmpty() }.debounce(500.milliseconds),
     ) { (weekLimits, currentDay), events, isRefreshing ->
         val calendarTimeZone = getCalendarTimeZone()
 

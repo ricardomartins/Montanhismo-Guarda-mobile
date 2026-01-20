@@ -22,6 +22,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetEventsInDatePeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.nextDay
@@ -50,7 +51,6 @@ class EventRepository(
         get() = eventStorage.events
 
     override val refreshingDetail = eventSource.refreshingDetail
-        .map { it.singularEventIds.isNotEmpty() || it.dateRanges.isNotEmpty() }
 
     private val refreshMutex = Mutex()
 
@@ -169,7 +169,7 @@ class EventRepository(
         suspend fun getTimeZone(): TimeZone
         suspend fun getEventsInRangeFlow(dateRange: LocalDateRange): Flow<EventsInRange>
         suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent>
-        val refreshingDetail: Flow<RefreshingDetail>
+        val refreshingDetail: Flow<RefreshState>
     }
 
     interface EventStorage {
@@ -190,11 +190,6 @@ class EventRepository(
     interface EventsInRange {
         val events: List<CalendarEvent>
         val dateRange: LocalDateRange
-    }
-
-    interface RefreshingDetail {
-        val singularEventIds: Collection<String>
-        val dateRanges: Collection<LocalDateRange>
     }
 
     data class DateRangeTimestamp(
