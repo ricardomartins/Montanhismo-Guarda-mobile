@@ -167,19 +167,6 @@ class EventCalendarApi(
         }
     }
 
-    private suspend fun getEventById(eventId: Int): EventItem? {
-        val stringId = eventId.toString()
-        return try {
-            _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds + stringId) }
-            client.get(EventsResource.Id(id = eventId)).body<EventItem>()
-        } catch (e: Exception) {
-            Logger.e("Failed to fetch or map event with ID: $eventId", e)
-            null
-        } finally {
-            _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds - stringId) }
-        }
-    }
-
     private val _refreshingDetail = MutableStateFlow(ApiRefreshState())
     override val refreshingDetail: Flow<RefreshState> = _refreshingDetail
 
