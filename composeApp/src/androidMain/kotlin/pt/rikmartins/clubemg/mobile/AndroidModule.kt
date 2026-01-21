@@ -9,8 +9,8 @@ import pt.rikmartins.clubemg.mobile.cache.AndroidDriverFactory
 import pt.rikmartins.clubemg.mobile.cache.SqlDriverFactory
 import pt.rikmartins.clubemg.mobile.datastore.createDataStore
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
-import pt.rikmartins.clubemg.mobile.ui.notification.AndroidNotifier
-import pt.rikmartins.clubemg.mobile.ui.notification.EventSyncWorker
+import pt.rikmartins.clubemg.mobile.notification.AndroidNotifier
+import pt.rikmartins.clubemg.mobile.notification.EventSyncWorker
 
 internal val androidModule = module {
     workerOf(::EventSyncWorker)

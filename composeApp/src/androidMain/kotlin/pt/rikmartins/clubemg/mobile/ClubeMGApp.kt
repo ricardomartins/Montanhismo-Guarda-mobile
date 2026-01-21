@@ -4,8 +4,8 @@ import android.app.Application
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.workmanager.koin.workManagerFactory
-import pt.rikmartins.clubemg.mobile.ui.notification.setupNotificationChannels
-import pt.rikmartins.clubemg.mobile.ui.notification.scheduleEventSync
+import pt.rikmartins.clubemg.mobile.notification.setupNotificationChannels
+import pt.rikmartins.clubemg.mobile.notification.scheduleEventSync
 
 class ClubeMGApp : Application() {
 

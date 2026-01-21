@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui.notification
+package pt.rikmartins.clubemg.mobile.notification
 
 import android.Manifest
 import android.app.Notification
