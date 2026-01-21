@@ -15,36 +15,40 @@ class SynchronizeFavouriteEvents(
         val favouriteEventsIds = bookmarkProvider.getAllBookmarkedEventsIds()
         logger.d { "Favourite events are: $favouriteEventsIds" }
         val eventDiffs = eventsProvider.refreshEventsForDiff(favouriteEventsIds)
-        logger.d { "Detected events changes: $eventDiffs" }
-        if (eventDiffs.isNotEmpty()) {
-            logger.v { "Notifying favourite events changes" }
+        logger.d { "Detected ${eventDiffs.size} events changes" }
+        if (eventDiffs.isNotEmpty()) eventDiffs.filter { it.modifiedDateHasChanged() }.forEach { eventDiff ->
+            // Relevant
+            if (eventDiff.wasCanceled()) {
+                logger.v { "Notifying of cancelled event: ${eventDiff.oldEvent}" }
+                notifier.notifySingleEventCanceled(eventDiff)
+            } else {
+                var haveNotified = false
 
-            eventDiffs.filter { it.modifiedDateHasChanged() }.forEach { eventDiff ->
-                // Relevant
-                if (eventDiff.wasCanceled()) {
-                    notifier.notifySingleEventCanceled(eventDiff)
-                } else {
-                    var haveNotified = false
+                if (eventDiff.wasPostponed()) {
+                    logger.v { "Notifying of postponed event: ${eventDiff.oldEvent}" }
+                    notifier.notifySingleEventPostponed(eventDiff)
+                    haveNotified = true
+                }
+                if (eventDiff.startDateHasChanged() || eventDiff.endDateHasChanged()) {
+                    logger.v { "Notifying of rescheduled event: ${eventDiff.oldEvent}" }
+                    notifier.notifySingleEventRescheduled(eventDiff)
+                    haveNotified = true
+                }
+                if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty()) {
+                    logger.v { "Notifying of enrollment having started for event: ${eventDiff.oldEvent}" }
+                    notifier.notifySingleEventEnrollmentStarted(eventDiff)
+                    haveNotified = true
+                }
 
-                    if (eventDiff.wasPostponed()) {
-                        notifier.notifySingleEventPostponed(eventDiff)
-                        haveNotified = true
-                    }
-                    if (eventDiff.startDateHasChanged() || eventDiff.endDateHasChanged()) {
-                        notifier.notifySingleEventRescheduled(eventDiff)
-                        haveNotified = true
-                    }
-                    if (eventDiff.oldEvent.enrollmentUrl.isEmpty() && eventDiff.newEvent.enrollmentUrl.isNotEmpty()) {
-                        notifier.notifySingleEventEnrollmentStarted(eventDiff)
-                        haveNotified = true
-                    }
-
-                    // Irrelevant
-                    if (eventDiff.titleHasChanged()) {
-                        notifier.notifySingleEventRenamed(eventDiff)
-                        haveNotified = true
-                    }
-                    if (!haveNotified) notifier.notifySingleEventOtherChanges(eventDiff)
+                // Irrelevant
+                if (eventDiff.titleHasChanged()) {
+                    logger.v { "Notifying of renamed event: ${eventDiff.oldEvent}" }
+                    notifier.notifySingleEventRenamed(eventDiff)
+                    haveNotified = true
+                }
+                if (!haveNotified) {
+                    logger.v { "Notifying of general changes to event: ${eventDiff.oldEvent}" }
+                    notifier.notifySingleEventOtherChanges(eventDiff)
                 }
             }
         } else logger.v { "No notification of bookmarked events changes" }
