@@ -19,7 +19,10 @@ import pt.rikmartins.clubemg.mobile.MainActivity
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
+import java.sql.Date
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 @OptIn(ExperimentalTime::class)
 class AndroidNotifier(private val context: Context) : SynchronizeFavouriteEvents.Notifier {
@@ -112,8 +115,11 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getText(eventDiff: EventDiff): String =
             getString(R.string.event_cancelled_text, eventDiff.oldEvent.title)
 
-        override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(R.string.event_cancelled_big_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
+        override fun Context.getBigText(eventDiff: EventDiff): String = getString(
+            R.string.event_cancelled_big_text,
+            eventDiff.oldEvent.title,
+            eventDiff.oldEvent.startDate.asDate()
+        )
     }
 
     object EventPostponed : ClubeMGNotification(channel = Channel.FAVOURITE_RELEVANT) {
@@ -123,23 +129,32 @@ private sealed class ClubeMGNotification(val channel: Channel) {
         override fun Context.getText(eventDiff: EventDiff): String =
             getString(R.string.event_postponed_text, eventDiff.oldEvent.title)
 
-        override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(R.string.event_postponed_big_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
+        override fun Context.getBigText(eventDiff: EventDiff): String = getString(
+            R.string.event_postponed_big_text,
+            eventDiff.oldEvent.title,
+            eventDiff.oldEvent.startDate.asDate()
+        )
     }
 
     object EventRescheduled : ClubeMGNotification(channel = Channel.FAVOURITE_RELEVANT) {
 
         override fun Context.getTitle(eventDiff: EventDiff): String = getString(R.string.event_rescheduled_title)
 
-        override fun Context.getText(eventDiff: EventDiff): String =
-            getString(R.string.event_rescheduled_text, eventDiff.oldEvent.title, eventDiff.oldEvent.startDate)
+        override fun Context.getText(eventDiff: EventDiff): String = getString(
+            R.string.event_rescheduled_text,
+            eventDiff.oldEvent.title,
+            eventDiff.oldEvent.startDate.asDate()
+        )
 
-        override fun Context.getBigText(eventDiff: EventDiff): String =
-            getString(
-                R.string.event_rescheduled_big_text,
-                eventDiff.oldEvent.title, eventDiff.oldEvent.startDate, eventDiff.newEvent.startDate,
-            )
+        override fun Context.getBigText(eventDiff: EventDiff): String = getString(
+            R.string.event_rescheduled_big_text,
+            eventDiff.oldEvent.title,
+            eventDiff.oldEvent.startDate.asDate(),
+            eventDiff.newEvent.startDate.asDate(),
+        )
     }
+
+    fun Instant.asDate(): java.util.Date = Date.from(this.toJavaInstant())
 
     object EventEnrollmentStarted : ClubeMGNotification(channel = Channel.FAVOURITE_RELEVANT) {
 
