@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.MergedEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
@@ -32,6 +33,11 @@ class SimplifiedEvent(
     }
     val isBookmarked: Boolean
         get() = calendarEvent.isBookmarked
+    val isCancelled: Boolean
+        get() = calendarEvent.eventStatusType == EventStatusType.Cancelled
+
+    val isPostponed: Boolean
+        get() = calendarEvent.eventStatusType == EventStatusType.Postponed
 
     /**
      * A list of [EventImage]s associated with the event, sorted by file size in ascending order.
