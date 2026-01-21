@@ -1,0 +1,13 @@
+CREATE TABLE SingleTextValue (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT
+);
+
+getTextValue:
+SELECT *
+FROM SingleTextValue
+WHERE key = ?;
+
+setTextValue:
+INSERT OR REPLACE INTO SingleTextValue (key, value)
+VALUES (?, ?);

@@ -1,42 +1,8 @@
 import kotlin.time.Instant;
-import kotlinx.datetime.LocalDate;
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode;
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType;
 
-PRAGMA recursive_triggers = 1;
-
---region DateRangeTimestamp
-CREATE TABLE DateRangeTimestamp (
-    id INTEGER PRIMARY KEY,
-    dateRangeStart INTEGER AS LocalDate NOT NULL,
-    dateRangeEnd INTEGER AS LocalDate NOT NULL,
-    timestamp INTEGER AS Instant NOT NULL
-);
-
-getAllDateRangeTimestamps:
-SELECT *
-FROM DateRangeTimestamp;
-
-getDateRangeTimestampsThatIntersectRange:
-SELECT *
-FROM DateRangeTimestamp
-WHERE dateRangeEnd >= :rangeStart
-AND dateRangeStart <= :rangeEnd;
-
-insertDateRangeTimestamp:
-INSERT INTO DateRangeTimestamp (dateRangeStart, dateRangeEnd, timestamp)
-VALUES (:rangeStart, :rangeEnd, :timestamp);
-
-deleteDateRangeTimestampWithId:
-DELETE FROM DateRangeTimestamp
-WHERE id = ?;
-
-updateDateRangeTimestampWithId:
-UPDATE DateRangeTimestamp
-SET dateRangeStart = :rangeStart,
-    dateRangeEnd = :rangeEnd
-WHERE id == :id;
---endregion DateRangeTimestamp
+PRAGMA recursive_triggers = 1; -- [https://www.sqlite.org/pragma.html#pragma_recursive_triggers]
 
 --region CalendarEvent
 CREATE TABLE CalendarEvent (
@@ -116,22 +82,6 @@ deleteImagesOfEvents:
 DELETE FROM EventImage
 WHERE calendarEventId IN ?;
 --endregion EventImage
-
---region SingleValues
-CREATE TABLE SingleTextValue (
-    key TEXT PRIMARY KEY NOT NULL,
-    value TEXT
-);
-
-getTextValue:
-SELECT *
-FROM SingleTextValue
-WHERE key = ?;
-
-setTextValue:
-INSERT OR REPLACE INTO SingleTextValue (key, value)
-VALUES (?, ?);
---endregion SingleValues
 
 --region Multiple table
 selectAllWithImages:

@@ -1,0 +1,33 @@
+import kotlin.time.Instant;
+import kotlinx.datetime.LocalDate;
+
+CREATE TABLE DateRangeTimestamp (
+    id INTEGER PRIMARY KEY,
+    dateRangeStart INTEGER AS LocalDate NOT NULL,
+    dateRangeEnd INTEGER AS LocalDate NOT NULL,
+    timestamp INTEGER AS Instant NOT NULL
+);
+
+getAllDateRangeTimestamps:
+SELECT *
+FROM DateRangeTimestamp;
+
+getDateRangeTimestampsThatIntersectRange:
+SELECT *
+FROM DateRangeTimestamp
+WHERE dateRangeEnd >= :rangeStart
+AND dateRangeStart <= :rangeEnd;
+
+insertDateRangeTimestamp:
+INSERT INTO DateRangeTimestamp (dateRangeStart, dateRangeEnd, timestamp)
+VALUES (:rangeStart, :rangeEnd, :timestamp);
+
+deleteDateRangeTimestampWithId:
+DELETE FROM DateRangeTimestamp
+WHERE id = ?;
+
+updateDateRangeTimestampWithId:
+UPDATE DateRangeTimestamp
+SET dateRangeStart = :rangeStart,
+    dateRangeEnd = :rangeEnd
+WHERE id == :id;
