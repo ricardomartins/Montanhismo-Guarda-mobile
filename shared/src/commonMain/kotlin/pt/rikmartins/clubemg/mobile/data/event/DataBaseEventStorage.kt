@@ -16,7 +16,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.cache.AppDatabase
-import pt.rikmartins.clubemg.mobile.cache.AppDatabaseQueries
+import pt.rikmartins.clubemg.mobile.cache.EventsQueries
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
@@ -37,13 +37,15 @@ class DataBaseEventStorage(
     private val logger: Logger = Logger.withTag(DataBaseEventStorage::class.simpleName!!)
 ) : EventRepository.EventStorage {
 
-    private val queries = database.appDatabaseQueries
+    private val eventsQueries = database.eventsQueries
+    private val rangesQueries = database.rangesQueries
+    private val singleValuesQueries = database.singleValuesQueries
 
-    override val events: Flow<List<CalendarEvent>> = queries.selectAllWithImages().asFlow()
+    override val events: Flow<List<CalendarEvent>> = eventsQueries.selectAllWithImages().asFlow()
         .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEvent() }
 
     override suspend fun getTimeZone(): TimeZone = withContext(defaultDispatcher) {
-        TimeZone.of(queries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
+        TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
     }
 
     override suspend fun setTimeZone(timezone: TimeZone): Unit = withContext(defaultDispatcher) {
@@ -53,7 +55,7 @@ class DataBaseEventStorage(
     override suspend fun getDateRangeTimestampsOf(
         dateRange: LocalDateRange,
     ): List<EventRepository.DateRangeTimestamp> = withContext(defaultDispatcher) {
-        queries.getDateRangeTimestampsThatIntersectRange(
+        rangesQueries.getDateRangeTimestampsThatIntersectRange(
             rangeStart = dateRange.start,
             rangeEnd = dateRange.endInclusive
         ).executeAsList()
@@ -72,15 +74,15 @@ class DataBaseEventStorage(
         timestamp: Instant,
     ) = withContext(defaultDispatcher) {
         val timeZone =
-            TimeZone.of(queries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
+            TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
 
-        queries.transaction {
-            queries.saveEvents(events, dateRange, timeZone)
+        eventsQueries.transaction {
+            eventsQueries.saveEvents(events, dateRange, timeZone)
             saveDateRangeWithTimestamp(dateRange, timestamp)
         }
     }
 
-    private fun AppDatabaseQueries.saveEvents(
+    private fun EventsQueries.saveEvents(
         events: List<CalendarEvent>,
         dateRange: LocalDateRange,
         timeZone: TimeZone,
@@ -111,7 +113,7 @@ class DataBaseEventStorage(
         eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
     }
 
-    private fun AppDatabaseQueries.replaceSingleEvent(event: CalendarEvent) {
+    private fun EventsQueries.replaceSingleEvent(event: CalendarEvent) {
         replaceEvent(event.id, event.creationDate, event.modifiedDate, event.title, event.url, event.startDate, event.endDate, event.enrollmentUrl)
         if (event.eventStatusType != null) updateEventStatusType(event.eventStatusType, event.id)
         if (event.eventAttendanceMode != null) updateEventAttendanceMode(event.eventAttendanceMode, event.id)
@@ -119,7 +121,7 @@ class DataBaseEventStorage(
     }
 
     private fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
-        queries.getDateRangeTimestampsThatIntersectRange(
+        rangesQueries.getDateRangeTimestampsThatIntersectRange(
             rangeStart = dateRange.start,
             rangeEnd = dateRange.endInclusive,
         )
@@ -130,12 +132,12 @@ class DataBaseEventStorage(
                 when {
                     startsBeforeNew && endsAfterNew -> {
                         // Existing range contains the new one
-                        queries.updateDateRangeTimestampWithId(
+                        rangesQueries.updateDateRangeTimestampWithId(
                             id = existing.id,
                             rangeStart = existing.dateRangeStart,
                             rangeEnd = dateRange.start.previousDay(),
                         )
-                        queries.insertDateRangeTimestamp(
+                        rangesQueries.insertDateRangeTimestamp(
                             rangeStart = dateRange.endInclusive.nextDay(),
                             rangeEnd = existing.dateRangeEnd,
                             timestamp = existing.timestamp,
@@ -144,7 +146,7 @@ class DataBaseEventStorage(
 
                     startsBeforeNew ->
                         // Existing range starts before the new one
-                        queries.updateDateRangeTimestampWithId(
+                        rangesQueries.updateDateRangeTimestampWithId(
                             id = existing.id,
                             rangeStart = existing.dateRangeStart,
                             rangeEnd = dateRange.start.previousDay(),
@@ -152,16 +154,16 @@ class DataBaseEventStorage(
 
                     endsAfterNew ->
                         // Existing range ends after the new one
-                        queries.updateDateRangeTimestampWithId(
+                        rangesQueries.updateDateRangeTimestampWithId(
                             id = existing.id,
                             rangeStart = dateRange.endInclusive.nextDay(),
                             rangeEnd = existing.dateRangeEnd,
                         )
 
-                    else -> queries.deleteDateRangeTimestampWithId(existing.id)
+                    else -> rangesQueries.deleteDateRangeTimestampWithId(existing.id)
                 }
             }
-        queries.insertDateRangeTimestamp(
+        rangesQueries.insertDateRangeTimestamp(
             rangeStart = dateRange.start,
             rangeEnd = dateRange.endInclusive,
             timestamp = timestamp
@@ -171,8 +173,8 @@ class DataBaseEventStorage(
     override suspend fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff> =
         withContext(defaultDispatcher) {
             buildSet {
-                queries.transaction {
-                    val existingEvents = queries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
+                eventsQueries.transaction {
+                    val existingEvents = eventsQueries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
 
                     val eventsToUpsert = calendarEvents.toMutableList()
 
@@ -187,8 +189,8 @@ class DataBaseEventStorage(
                         }
                     }
 
-                    queries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-                    eventsToUpsert.forEach { calendarEvent -> queries.replaceSingleEvent(calendarEvent) }
+                    eventsQueries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
+                    eventsToUpsert.forEach { calendarEvent -> eventsQueries.replaceSingleEvent(calendarEvent) }
                 }
             }
         }
