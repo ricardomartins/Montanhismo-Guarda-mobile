@@ -56,4 +56,10 @@
 
     <!--endregion Notification-->
 
+    <!--region Bottom Navigation-->
+    <string name="calendar_navigation">Calendar</string>
+    <string name="bookmarks_navigation">Bookmarks</string>
+    <string name="settings_navigation">Settings</string>
+    <!--endregion Bottom Navigation-->
+
 </resources>

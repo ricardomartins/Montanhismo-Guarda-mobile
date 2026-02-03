@@ -3,6 +3,7 @@ package pt.rikmartins.clubemg.mobile
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.workmanager.dsl.workerOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.cache.AndroidDriverFactory
@@ -17,4 +18,5 @@ internal val androidModule = module {
     singleOf(::AndroidDriverFactory) bind SqlDriverFactory::class
     singleOf(::AndroidNotifier) bind SynchronizeFavouriteEvents.Notifier::class
     single { createDataStore { fileName -> androidContext().filesDir.resolve(fileName).absolutePath } }
+    viewModelOf(::ScaffoldViewModel)
 }

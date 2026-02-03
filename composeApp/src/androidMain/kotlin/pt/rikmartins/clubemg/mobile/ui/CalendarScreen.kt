@@ -1,28 +1,17 @@
 package pt.rikmartins.clubemg.mobile.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,22 +20,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
+fun CalendarScreen(
+    scaffoldViewModel: ScaffoldViewModel,
+    navigateToDetails: (event: CalendarEvent) -> Unit,
+) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
@@ -62,8 +52,6 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
     val weeks = model.weeksOfEvents
 
     var showFab by remember { mutableStateOf(false) }
-
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     LaunchedEffect(listState, todayMonday) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }.collect { visibleInfo ->
@@ -84,36 +72,17 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
         }
     }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            Column {
-                CenterAlignedTopAppBar(
-                    title = { Text(stringResource(R.string.title_calendar)) },
-                    actions = {
-                        IconButton(onClick = { viewModel.forceSync() }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_sync),
-                                contentDescription = stringResource(R.string.force_sync),
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    scrollBehavior = scrollBehavior,
+    scaffoldViewModel.updateScaffold(
+        title = { Text(stringResource(R.string.title_calendar)) },
+        actions = {
+            IconButton(onClick = { viewModel.forceSync() }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_sync),
+                    contentDescription = stringResource(R.string.force_sync),
                 )
-                AnimatedVisibility(
-                    visible = refreshingCalendar,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
             }
         },
-        floatingActionButton = {
+        fab = {
             AnimatedVisibility(
                 visible = showFab,
                 enter = scaleIn(),
@@ -136,27 +105,27 @@ fun CalendarScreen(navigateToDetails: (event: CalendarEvent) -> Unit) {
                 }
             }
         },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            state = listState,
-        ) {
-            items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-                Week(weekOfEvents, today) { viewModel.setSelectedEvent(it) }
-                HorizontalDivider(thickness = Dp.Hairline)
-            }
+    )
+
+    LaunchedEffect(refreshingCalendar) { scaffoldViewModel.showProgress(refreshingCalendar) }
+
+    LazyColumn(
+        state = listState,
+    ) {
+        items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
+            Week(weekOfEvents, today) { viewModel.setSelectedEvent(it) }
+            HorizontalDivider()
         }
-        val selectedEventVal = selectedEvent
-        if (selectedEventVal != null) EventActionsDialog(
-            event = selectedEventVal,
-            refreshingEventIds = refreshingEventIds,
-            navigateToDetails = {
-                navigateToDetails(it)
-                viewModel.unsetSelectedEvent()
-            },
-            setBookmarkTo = { viewModel.setBookmarkOfEventTo(selectedEventVal, it) },
-        ) { viewModel.unsetSelectedEvent() }
     }
+    val selectedEventVal = selectedEvent
+    if (selectedEventVal != null) EventActionsDialog(
+        event = selectedEventVal,
+        refreshingEventIds = refreshingEventIds,
+        navigateToDetails = {
+            navigateToDetails(it)
+            viewModel.unsetSelectedEvent()
+        },
+        setBookmarkTo = { viewModel.setBookmarkOfEventTo(selectedEventVal, it) },
+    ) { viewModel.unsetSelectedEvent() }
+
 }
