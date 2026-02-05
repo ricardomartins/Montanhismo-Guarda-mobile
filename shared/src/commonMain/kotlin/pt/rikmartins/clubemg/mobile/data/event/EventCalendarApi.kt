@@ -67,16 +67,21 @@ class EventCalendarApi(
 
         _refreshingDetail.update { it.copy(dateRanges = it.dateRanges.plusElement(dateRange)) }
         return channelFlow {
-            val headPage = client.get(
-                EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)
-            ).body<EventResponse>()
-            send(1 to headPage)
+            try {
+                val headPage = client.get(
+                    EventsResource(startDate = startDateAsParam, endDate = endDateAsParam)
+                ).body<EventResponse>()
+                send(1 to headPage)
 
-            for (page in 2..headPage.totalPages) launch {
-                val response = client
-                    .get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = page))
-                    .body<EventResponse>()
-                send(page to response)
+                for (page in 2..headPage.totalPages) launch {
+                    val response = client
+                        .get(EventsResource(startDate = startDateAsParam, endDate = endDateAsParam, page = page))
+                        .body<EventResponse>()
+                    send(page to response)
+                }
+            } catch (e: Exception) {
+                Logger.e("Failed to fetch event pages: ${e.message}", e)
+                close(e)
             }
         }.flowOn(defaultDispatcher)
             // Build map of pages to their response

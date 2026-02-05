@@ -73,9 +73,13 @@ class EventRepository(
 
     private suspend fun refreshRange(range: LocalDateRange, withLock: Boolean = true) {
         suspend fun execute() {
-            eventSource.getEventsInRangeFlow(range)
-                .map { eventStorage.saveEventsAndRanges(it.events, it.dateRange) }
-                .collect()
+            try {
+                eventSource.getEventsInRangeFlow(range)
+                    .map { eventStorage.saveEventsAndRanges(it.events, it.dateRange) }
+                    .collect()
+            } catch (e: Exception) {
+                logger.e(e) { "Failed to refresh events for $range" }
+            }
         }
 
         if (withLock) refreshMutex.withLock { execute() } else execute()
