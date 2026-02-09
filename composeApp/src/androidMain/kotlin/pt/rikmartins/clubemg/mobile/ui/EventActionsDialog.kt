@@ -4,27 +4,22 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
-import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -47,10 +41,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
-import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun EventActionsDialog(
@@ -95,98 +87,58 @@ fun EventActionsDialog(
 
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
-            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
             shape = RoundedCornerShape(28.dp)
         ) {
-            Box(
+            val fallback = painterResource(id = R.drawable.fallback)
+            val selectedImage = remember(event) { event.sortedImages.firstOrNull { it.id == null } }
+
+            AsyncImage(
+                model = selectedImage?.url,
+                contentDescription = "${event.title} cover image", // TODO: Localize
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .clip(MaterialTheme.shapes.medium)
-            ) {
-                val fallback = painterResource(id = R.drawable.fallback)
-                val selectedImage = remember(event) { event.sortedImages.firstOrNull { it.id == null } }
+                    .clip(MaterialTheme.shapes.medium),
+                contentScale = ContentScale.FillWidth,
+                alignment = Alignment.Center,
+                placeholder = fallback,
+                error = fallback,
+                fallback = fallback,
+            )
 
-                AsyncImage(
-                    model = selectedImage?.url,
-                    contentDescription = "${event.title} cover image", // TODO: Localize
-                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    contentScale = ContentScale.FillWidth,
-                    alignment = Alignment.Center,
-                    placeholder = fallback,
-                    error = fallback,
-                    fallback = fallback,
-                )
-                IconToggleButton(
-                    checked = event.isBookmarked,
-                    onCheckedChange = {
-                        if (it) requestNotificationPermission()
-                        setBookmarkTo(it)
-                    },
-                    colors = IconButtonDefaults.iconToggleButtonColors(
-                        checkedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                    ),
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            if (event.isBookmarked) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border
-                        ),
-                        contentDescription = stringResource(
-                            if (event.isBookmarked) R.string.unbookmark_activity_action_description
-                            else R.string.bookmark_activity_action_description
-                        ),
-                    )
-                }
-            }
-
-            FlowRow(
-                horizontalArrangement = Arrangement.SpaceBetween,
+            EventInfo(
+                title = event.title,
+                range = event.range,
+                isBookmarked = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, top = 12.dp),
-            ) {
-                Text(
-                    text = event.title,
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .padding(end = 8.dp, top = 4.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                    .padding(start = 24.dp, end = 24.dp, top = 12.dp)
+            )
 
-                val locale = LocalConfiguration.current.locales[0]
-                val formatter =
-                    remember { DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "LLL-d")) }
-
-                val dateText = with(event.range) {
-                    if (size > 1) {
-                        val startDate = start.toJavaLocalDate().format(formatter)
-                        val endDate = endInclusive.toJavaLocalDate().format(formatter)
-
-                        "$startDate - $endDate"
-                    } else {
-                        start.toJavaLocalDate().format(formatter)
-                    }
-                }
-
-                Text(
-                    text = dateText,
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .padding(top = 4.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
             Row(
                 horizontalArrangement = Arrangement.End,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
             ) {
-                Button(onClick = { navigateToDetails(event.calendarEvent) }) {
+                Button(
+                    colors = ButtonDefaults.textButtonColors(),
+                    shape = ButtonDefaults.textShape,
+                    onClick = { navigateToDetails(event.calendarEvent) }
+                ) {
                     Text(stringResource(R.string.visit_page_action))
                 }
+
+                BookmarkToggleButton(
+                    isBookmarked = event.isBookmarked,
+                    setBookmark = {
+                        if (it) requestNotificationPermission()
+                        setBookmarkTo(it)
+                    }
+                )
             }
             AnimatedVisibility(
                 visible = refreshingEventIds.any { it == event.id },
