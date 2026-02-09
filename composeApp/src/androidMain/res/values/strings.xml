@@ -4,12 +4,15 @@
 
     <string name="back">Voltar</string>
 
+    <!--region Calendar Screen-->
     <string name="title_calendar">Calendário de Actividades</string>
-    <string name="jump_to_today">Pular para hoje</string>
-    <string name="force_sync">Forçar sincronização</string>
-    <string name="visit_page_action">Visitar a página</string>
-    <string name="bookmark_activity_action">Marcar esta atividade</string>
-    <string name="unbookmark_activity_action">Desmarcar esta atividade</string>
+    <!--endregion Calendar Screen-->
+
+    <!--region Bookmarks Screen-->
+    <string name="title_bookmarks">Favoritos</string>
+    <string name="empty_state_headline_bookmarks">Nenhum favorito</string>
+    <string name="empty_state_description_bookmarks">Marca um evento como favorito para aparecer aqui.</string>
+    <!--endregion Bookmarks Screen-->
 
     <!--region Notification-->
 
@@ -61,5 +64,17 @@
     <string name="bookmarks_navigation">Favoritos</string>
     <string name="settings_navigation">Definições</string>
     <!--endregion Bottom Navigation-->
+
+    <!--region Empty state -->
+    <string name="empty_state_background_description">Fundo de uma montanha com algumas árvores e nuvens.</string>
+    <!--endregion Empty state -->
+
+    <!--region Actions-->
+    <string name="jump_to_today_action">Pular para hoje</string>
+    <string name="force_sync_action">Forçar sincronização</string>
+    <string name="visit_page_action">Visitar a página</string>
+    <string name="bookmark_activity_action_description">Marcar esta atividade</string>
+    <string name="unbookmark_activity_action_description">Desmarcar esta atividade</string>
+    <!--endregion Actions-->
 
 </resources>

@@ -20,6 +20,7 @@ import pt.rikmartins.clubemg.mobile.cache.EventsQueries
 import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
 import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
+import pt.rikmartins.clubemg.mobile.cache.SelectEventsByIdWithImages
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
@@ -42,7 +43,7 @@ class DataBaseEventStorage(
     private val singleValuesQueries = database.singleValuesQueries
 
     override val events: Flow<List<CalendarEvent>> = eventsQueries.selectAllWithImages().asFlow()
-        .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEvent() }
+        .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEventAll() }
 
     override suspend fun getTimeZone(): TimeZone = withContext(defaultDispatcher) {
         TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
@@ -195,6 +196,10 @@ class DataBaseEventStorage(
             }
         }
 
+    override fun observeEventsById(ids: Collection<String>): Flow<Collection<CalendarEvent>> =
+        eventsQueries.selectEventsByIdWithImages(ids).asFlow().mapToList(defaultDispatcher)
+            .map { rows -> rows.toCalendarEventById() }
+
     private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent) = EventDiff(
         StorageCalendarEvent(
             id = id,
@@ -244,7 +249,41 @@ class DataBaseEventStorage(
         fileSize = fileSize.toLong(),
     )
 
-    private fun List<SelectAllWithImages>.toCalendarEvent(): List<StorageCalendarEvent> = this.groupBy { it.id }
+    private fun List<SelectAllWithImages>.toCalendarEventAll(): List<StorageCalendarEvent> = this.groupBy { it.id }
+        .map { (_, rowList) ->
+            val calendarEvent = rowList.first()
+
+            StorageCalendarEvent(
+                id = calendarEvent.id,
+                creationDate = calendarEvent.creationDate,
+                modifiedDate = calendarEvent.modifiedDate,
+                title = calendarEvent.title,
+                url = calendarEvent.url,
+                startDate = calendarEvent.startDate,
+                endDate = calendarEvent.endDate,
+                enrollmentUrl = calendarEvent.enrollmentUrl,
+                images = rowList.mapNotNull { eventImage ->
+                    if (eventImage.url_ != null &&
+                        eventImage.width != null &&
+                        eventImage.height != null &&
+                        eventImage.fileSize != null
+                    ) {
+                        StorageEventImage(
+                            calendarEventId = calendarEvent.id,
+                            id = eventImage.id_,
+                            url = eventImage.url_,
+                            width = eventImage.width.toInt(),
+                            height = eventImage.height.toInt(),
+                            fileSize = eventImage.fileSize.toInt(),
+                        )
+                    } else null
+                },
+                eventStatusType = calendarEvent.eventStatusType,
+                eventAttendanceMode = calendarEvent.eventAttendanceMode,
+            )
+        }
+
+    private fun List<SelectEventsByIdWithImages>.toCalendarEventById(): List<StorageCalendarEvent> = this.groupBy { it.id }
         .map { (_, rowList) ->
             val calendarEvent = rowList.first()
 

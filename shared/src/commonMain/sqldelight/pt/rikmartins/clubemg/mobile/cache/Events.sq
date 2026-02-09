@@ -87,4 +87,9 @@ WHERE calendarEventId IN ?;
 selectAllWithImages:
 SELECT * FROM CalendarEvent
 LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId;
+
+selectEventsByIdWithImages:
+SELECT * FROM CalendarEvent
+LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
+WHERE CalendarEvent.id IN ?;
 --endregion Multiple table

@@ -59,7 +59,7 @@ private fun EventDetails(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_today),
-                            contentDescription = stringResource(R.string.jump_to_today),
+                            contentDescription = stringResource(R.string.jump_to_today_action),
                         )
                     }
                 }

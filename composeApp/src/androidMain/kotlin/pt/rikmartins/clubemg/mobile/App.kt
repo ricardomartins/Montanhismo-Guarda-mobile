@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -19,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
+import pt.rikmartins.clubemg.mobile.ui.BookmarksScreen
 import pt.rikmartins.clubemg.mobile.ui.EventDetailScreen
 import pt.rikmartins.clubemg.mobile.ui.CalendarScreen
 import pt.rikmartins.clubemg.mobile.ui.theme.AppTheme
@@ -82,7 +83,6 @@ sealed interface AppDestination {
 
     @Serializable
     data class EventDetail(val eventId: String) : AppDestination
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,7 +105,7 @@ fun App() {
                 .nestedScroll(bottomAppBarScrollBehavior.nestedScrollConnection),
             topBar = {
                 Column {
-                    CenterAlignedTopAppBar(
+                    TopAppBar(
                         title = scaffoldState.topBarTitle,
                         actions = scaffoldState.topBarActions,
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -173,7 +173,7 @@ fun App() {
                     )
                 }
                 composable<AppDestination.Main.Bookmarks> {
-                    // Placeholder
+                    BookmarksScreen(scaffoldViewModel)
                 }
                 composable<AppDestination.Main.Settings> {
                     // Placeholder

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.DatePeriod
@@ -24,10 +25,12 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
+import kotlin.collections.map
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -40,7 +43,7 @@ class EventRepository(
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
     ObserveRefreshing.Gateway, RefreshPeriod.Gateway, ConsiderRefreshingPeriod.EventProvider,
-    SynchronizeFavouriteEvents.EventsProvider, RefreshEvent.EventProvider {
+    SynchronizeFavouriteEvents.EventsProvider, RefreshEvent.EventProvider, ObserveAllFavouriteEvents.EventsProvider {
 
     override suspend fun considerRefreshingPeriod(period: LocalDateRange) = refreshStaleEvents(period)
 
@@ -171,9 +174,14 @@ class EventRepository(
     }
 
     override suspend fun refreshEvent(eventId: String) {
-        val freshCalendarEvents = eventSource.getEventsById(setOf(eventId))
-        eventStorage.saveEventsForDiff(freshCalendarEvents) // Ignore for now
+        refreshEventsForDiff(setOf(eventId)) // Ignore returned for now
     }
+
+    override fun observeEventsById(ids: Collection<String>): Flow<Collection<CalendarEvent>> =
+        eventStorage.observeEventsById(ids).onEach { storedEvents ->
+            val missingEventIds = ids.filter { storedEvents.none { event -> event.id == it } }
+            if (missingEventIds.isNotEmpty()) refreshEventsForDiff(missingEventIds) // Ignore returned for now
+        }
 
     interface EventSource {
         suspend fun getTimeZone(): TimeZone
@@ -195,6 +203,8 @@ class EventRepository(
         )
 
         suspend fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff>
+
+        fun observeEventsById(ids: Collection<String>): Flow<Collection<CalendarEvent>>
     }
 
     interface EventsInRange {

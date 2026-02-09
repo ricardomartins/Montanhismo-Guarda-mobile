@@ -4,12 +4,15 @@
 
     <string name="back">Back</string>
 
+    <!--region Calendar Screen-->
     <string name="title_calendar">Activity Calendar</string>
-    <string name="jump_to_today">Jump to today</string>
-    <string name="force_sync">Force synchronization</string>
-    <string name="visit_page_action">Visit page</string>
-    <string name="bookmark_activity_action">Bookmark this activity</string>
-    <string name="unbookmark_activity_action">Unbookmark this activity</string>
+    <!--endregion Calendar Screen-->
+
+    <!--region Bookmarks Screen-->
+    <string name="title_bookmarks">Bookmarks</string>
+    <string name="empty_state_headline_bookmarks">No bookmarks</string>
+    <string name="empty_state_description_bookmarks">Bookmark an activity to see it here.</string>
+    <!--endregion Bookmarks Screen-->
 
     <!--region Notification-->
 
@@ -62,4 +65,15 @@
     <string name="settings_navigation">Settings</string>
     <!--endregion Bottom Navigation-->
 
+    <!--region Empty state -->
+    <string name="empty_state_background_description">Background of a mountain with some trees and clouds.</string>
+    <!--endregion Empty state -->
+
+    <!--region Actions-->
+    <string name="jump_to_today_action">Jump to today</string>
+    <string name="force_sync_action">Force synchronization</string>
+    <string name="visit_page_action">Visit page</string>
+    <string name="bookmark_activity_action_description">Bookmark this activity</string>
+    <string name="unbookmark_activity_action_description">Unbookmark this activity</string>
+    <!--endregion Actions-->
 </resources>

@@ -134,8 +134,8 @@ fun EventActionsDialog(
                             if (event.isBookmarked) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border
                         ),
                         contentDescription = stringResource(
-                            if (event.isBookmarked) R.string.unbookmark_activity_action
-                            else R.string.bookmark_activity_action
+                            if (event.isBookmarked) R.string.unbookmark_activity_action_description
+                            else R.string.bookmark_activity_action_description
                         ),
                     )
                 }

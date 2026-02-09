@@ -5,5 +5,6 @@ import org.koin.dsl.module
 
 internal val uiModule = module {
     factoryOf(::CalendarViewModel)
+    factoryOf(::BookmarksViewModel)
 //    factory { DetailViewModel(get()) }
 }

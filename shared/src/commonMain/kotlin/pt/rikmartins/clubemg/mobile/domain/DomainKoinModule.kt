@@ -5,6 +5,7 @@ import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
@@ -22,4 +23,5 @@ internal val domainModule = module {
     single { SynchronizeFavouriteEvents(get(), get(), get()) }
     singleOf(::SetBookmarkOfEventId)
     singleOf(::RefreshEvent)
+    singleOf(::ObserveAllFavouriteEvents)
 }

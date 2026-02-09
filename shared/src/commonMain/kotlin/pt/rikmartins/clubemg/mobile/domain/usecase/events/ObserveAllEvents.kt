@@ -5,14 +5,14 @@ import kotlinx.coroutines.flow.combine
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
 import kotlin.time.Instant
 
-class ObserveAllEvents(private val eventsProvider: EventsProvider, private val bookmarkProvider: BookmarkProvider) : WatchCase.Supplier<List<MergedEvent>>() {
+class ObserveAllEvents(private val eventsProvider: EventsProvider, private val bookmarkProvider: BookmarkProvider) : WatchCase.Supplier<List<EventWithBookmark>>() {
 
-    override fun execute(): Flow<List<MergedEvent>> =
+    override fun execute(): Flow<List<EventWithBookmark>> =
         combine(eventsProvider.events, bookmarkProvider.favouriteEventsIds) { events, favouriteEventsIds ->
             val favouriteEventsIds = favouriteEventsIds.toMutableSet()
 
             events.map { event ->
-                MergedEventImpl(
+                EventWithBookmarkImpl(
                     id = event.id,
                     creationDate = event.creationDate,
                     modifiedDate = event.modifiedDate,
@@ -37,7 +37,7 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
         val favouriteEventsIds: Flow<Collection<String>>
     }
 
-    private data class MergedEventImpl(
+    private data class EventWithBookmarkImpl(
         override val id: String,
         override val creationDate: Instant,
         override val modifiedDate: Instant,
@@ -50,5 +50,5 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
         override val isBookmarked: Boolean,
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
-    ) : MergedEvent
+    ) : EventWithBookmark
 }

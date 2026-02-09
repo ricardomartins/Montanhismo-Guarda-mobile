@@ -21,8 +21,8 @@ class ScaffoldViewModel : ViewModel() {
 
     fun updateScaffold(
         title: (@Composable () -> Unit),
-        actions: (@Composable RowScope.() -> Unit),
-        fab: (@Composable () -> Unit),
+        actions: (@Composable RowScope.() -> Unit) = {},
+        fab: (@Composable () -> Unit) = {},
     ) {
         _scaffoldConfig.value = ScaffoldConfig(
             topBarTitle = title,

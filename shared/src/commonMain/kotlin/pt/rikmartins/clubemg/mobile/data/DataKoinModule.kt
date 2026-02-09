@@ -26,6 +26,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 
@@ -62,11 +63,13 @@ internal val dataModule = module {
         ConsiderRefreshingPeriod.EventProvider::class,
         SynchronizeFavouriteEvents.EventsProvider::class,
         RefreshEvent.EventProvider::class,
+        ObserveAllFavouriteEvents.EventsProvider::class,
     )
 
     singleOf(::BookmarkRepository) binds arrayOf(
         SynchronizeFavouriteEvents.BookmarkProvider::class,
         SetBookmarkOfEventId.BookmarkProvider::class,
         ObserveAllEvents.BookmarkProvider::class,
+        ObserveAllFavouriteEvents.BookmarkProvider::class,
     )
 }

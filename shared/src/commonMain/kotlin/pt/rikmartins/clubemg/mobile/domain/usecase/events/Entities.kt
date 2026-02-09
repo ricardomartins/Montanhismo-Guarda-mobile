@@ -33,8 +33,14 @@ enum class EventAttendanceMode {
     Mixed, Offline, Online;
 }
 
-interface MergedEvent : CalendarEvent {
+interface EventWithBookmark : CalendarEvent {
     val isBookmarked: Boolean
+}
+
+interface EventBookmarkWithEvent {
+    val id: String
+    val isBookmarked: Boolean
+    val event: CalendarEvent?
 }
 
 // TODO: Turn to an interface

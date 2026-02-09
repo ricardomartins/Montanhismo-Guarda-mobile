@@ -78,7 +78,7 @@ fun CalendarScreen(
             IconButton(onClick = { viewModel.forceSync() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_sync),
-                    contentDescription = stringResource(R.string.force_sync),
+                    contentDescription = stringResource(R.string.force_sync_action),
                 )
             }
         },
@@ -100,7 +100,7 @@ fun CalendarScreen(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_today),
-                        contentDescription = stringResource(R.string.jump_to_today),
+                        contentDescription = stringResource(R.string.jump_to_today_action),
                     )
                 }
             }

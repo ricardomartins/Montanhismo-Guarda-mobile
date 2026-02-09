@@ -3,9 +3,11 @@ package pt.rikmartins.clubemg.mobile.ui
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventBookmarkWithEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.MergedEvent
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
 data class Model(
@@ -19,7 +21,7 @@ data class WeekOfEvents(
 )
 
 class SimplifiedEvent(
-    val calendarEvent: MergedEvent,
+    val calendarEvent: EventWithBookmark,
     timeZone: TimeZone,
 ) {
     val id: String
@@ -45,4 +47,17 @@ class SimplifiedEvent(
      * This property is lazily initialized.
      */
     val sortedImages: List<EventImage> by lazy { calendarEvent.images.sortedBy { it.fileSize } }
+}
+
+data class UiEventBookmarkWithEvent(
+    override val id: String,
+    override val isBookmarked: Boolean,
+    override val event: CalendarEvent?,
+    val imageUrl: String?,
+    val timeZone: TimeZone,
+) : EventBookmarkWithEvent {
+
+    val range: LocalDateRange? = event?.run {
+        startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
+    }
 }
