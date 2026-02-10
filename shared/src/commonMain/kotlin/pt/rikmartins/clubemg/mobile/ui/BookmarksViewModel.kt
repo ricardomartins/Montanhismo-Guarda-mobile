@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
-import pt.rikmartins.clubemg.mobile.addAllWhen
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
@@ -32,8 +31,6 @@ class BookmarksViewModel(
     observeRefreshing: ObserveRefreshing,
 ) : ViewModel() {
 
-    private val recentlyUnbookmarkedEvents = MutableStateFlow<Collection<BookmarksUiEventWithBookmark>>(emptySet())
-
     private val eventImageOutputSize = MutableStateFlow<ImageSize?>(null)
 
     private val calendarTimeZoneFlow = flow { emit(getCalendarTimeZone()) }
@@ -44,15 +41,9 @@ class BookmarksViewModel(
     val model: StateFlow<List<UiEventWithBookmark>> = combine(
         combine(
             observeAllFavouriteEvents(),
-            recentlyUnbookmarkedEvents,
             calendarTimeZoneFlow,
-        ) { bookmarked, unbookmarked, timeZone ->
-            buildSet {
-                addAll(bookmarked.map { BookmarksUiEventWithBookmark(it, timeZone) })
-                addAllWhen(unbookmarked) { event -> bookmarked.none { it.id == event.id } }
-            }
-        },
-        eventImageOutputSize,
+        ) { bookmarked, timeZone -> bookmarked.map { BookmarksUiEventWithBookmark(it, timeZone) } },
+        eventImageOutputSize.debounce(500),
     ) { events, imageSize ->
         events.map { event ->
             event.copy(
@@ -69,7 +60,6 @@ class BookmarksViewModel(
             }
         }
     }
-        .debounce(200)
         .map { events -> events.sortedBy { it.calendarEvent.startDate } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -87,19 +77,14 @@ class BookmarksViewModel(
         selectedEvent.value = null
     }
 
-    fun unbookmarkEvent(event: UiEventWithBookmark) {
-        recentlyUnbookmarkedEvents.update { unbookmarked ->
-            if (unbookmarked.none { it.id == event.id }) unbookmarked + event.asBookmarksEntity(isBookmarked = false)
-            else unbookmarked
-        }
-        viewModelScope.launch { setBookmarkOfEventId(event.id, false) }
+    fun unbookmarkEvent(eventId: String) {
+        viewModelScope.launch { setBookmarkOfEventId(eventId, false) }
+        selectedEvent.update { if (it?.id == eventId) it.asBookmarksEntity(false) else it }
     }
 
-    fun bookmarkEvent(event: UiEventWithBookmark) {
-        recentlyUnbookmarkedEvents.update { unbookmarked ->
-            unbookmarked.find { it.id == event.id }?.let { unbookmarked - it } ?: unbookmarked
-        }
-        viewModelScope.launch { setBookmarkOfEventId(event.id, true) }
+    fun bookmarkEvent(eventId: String) {
+        viewModelScope.launch { setBookmarkOfEventId(eventId, true) }
+        selectedEvent.update { if (it?.id == eventId) it.asBookmarksEntity(true) else it }
     }
 
     fun updateImageSize(width: Int, height: Int) = eventImageOutputSize.update { ImageSize(width, height) }

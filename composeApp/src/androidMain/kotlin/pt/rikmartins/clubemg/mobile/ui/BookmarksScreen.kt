@@ -16,10 +16,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +35,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
@@ -39,11 +44,14 @@ import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
 fun BookmarksScreen(
     scaffoldViewModel: ScaffoldViewModel,
     navigateToDetails: (event: UiEventWithBookmark) -> Unit,
+    snackbarHostState: SnackbarHostState,
 ) {
     val viewModel: BookmarksViewModel = koinViewModel()
     val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
     val bookmarkedEvents by viewModel.model.collectAsStateWithLifecycle()
     val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
+
+    val scope = rememberCoroutineScope()
 
     val listState = rememberLazyListState()
 
@@ -63,14 +71,25 @@ fun BookmarksScreen(
         contentPadding = PaddingValues(all = 8.dp),
     ) {
         items(bookmarkedEvents, key = { it.id }) { event ->
+            val snackBarMessage = stringResource(R.string.bookmarks_snackbar_unbookmarked_text, event.title)
+            val snackBarUndoActionLabel = stringResource(R.string.undo_action)
+
             Bookmark(
                 event,
-                setBookmark = { isBookmarked ->
-                    if (isBookmarked) viewModel.bookmarkEvent(event)
-                    else viewModel.unbookmarkEvent(event)
+                unsetBookmark = {
+                    viewModel.unbookmarkEvent(event.id)
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = snackBarMessage,
+                            actionLabel = snackBarUndoActionLabel,
+                            duration = SnackbarDuration.Long
+                        )
+                        if (result == SnackbarResult.ActionPerformed) viewModel.bookmarkEvent(event.id)
+                    }
                 },
                 onEventClick = { viewModel.setSelectedEvent(it) },
-                onSizeChanged = { viewModel.updateImageSize(it.width, it.height) }
+                onSizeChanged = { viewModel.updateImageSize(it.width, it.height) },
+                modifier = Modifier.animateItem()
             )
         }
     }
@@ -84,8 +103,8 @@ fun BookmarksScreen(
             viewModel.unsetSelectedEvent()
         },
         setBookmarkTo = {
-            if (it) viewModel.bookmarkEvent(selectedEventVal)
-            else viewModel.unbookmarkEvent(selectedEventVal)
+            if (it) viewModel.bookmarkEvent(selectedEventVal.id)
+            else viewModel.unbookmarkEvent(selectedEventVal.id)
         },
     ) { viewModel.unsetSelectedEvent() }
 }
@@ -95,22 +114,22 @@ private const val IMAGE_ASPECT_RATIO = 4758f / 6892f // Usual size for a poster
 @Composable
 private fun Bookmark(
     event: UiEventWithBookmark,
-    setBookmark: (Boolean) -> Unit,
+    unsetBookmark: () -> Unit,
     onEventClick: (event: UiEventWithBookmark) -> Unit,
+    modifier: Modifier = Modifier,
     onSizeChanged: ((IntSize) -> Unit)? = null,
 ) {
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .wrapContentHeight()
             .fillMaxWidth(),
         onClick = { onEventClick(event) }
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // TODO: Localize
             AsyncImage(
                 model = event.preferredImageUrl,
-                contentDescription = "Cover image of event $event.title",
+                contentDescription = "Cover image of event $event.title", // TODO: Localize
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(IMAGE_ASPECT_RATIO)
@@ -135,7 +154,11 @@ private fun Bookmark(
                     isBookmarked = false,
                     modifier = Modifier.weight(1f)
                 )
-                BookmarkToggleButton(event.isBookmarked, setBookmark, Modifier.align(Alignment.End))
+                BookmarkToggleButton(
+                    isBookmarked = event.isBookmarked,
+                    setBookmark = { if (!it) unsetBookmark() },
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
         }
     }

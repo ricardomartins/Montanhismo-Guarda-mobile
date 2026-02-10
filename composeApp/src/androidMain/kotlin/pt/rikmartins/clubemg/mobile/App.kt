@@ -17,11 +17,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
@@ -100,6 +103,8 @@ fun App() {
         val topAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
         val bottomAppBarScrollBehavior = BottomAppBarDefaults.exitAlwaysScrollBehavior()
 
+        val snackbarHostState = remember { SnackbarHostState() }
+
         Scaffold(
             modifier = Modifier
                 .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
@@ -124,6 +129,7 @@ fun App() {
                     }
                 }
             },
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             floatingActionButton = scaffoldState.floatingActionButton,
             bottomBar = {
                 BottomAppBar(scrollBehavior = bottomAppBarScrollBehavior) {
@@ -179,6 +185,7 @@ fun App() {
                     BookmarksScreen(
                         scaffoldViewModel = scaffoldViewModel,
                         navigateToDetails = navigateToDetails,
+                        snackbarHostState = snackbarHostState
                     )
                 }
                 composable<AppDestination.Main.Settings> {

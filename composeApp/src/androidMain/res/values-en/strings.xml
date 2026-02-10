@@ -12,6 +12,7 @@
     <string name="title_bookmarks">Bookmarks</string>
     <string name="empty_state_headline_bookmarks">No bookmarks</string>
     <string name="empty_state_description_bookmarks">Bookmark an activity to see it here.</string>
+    <string name="bookmarks_snackbar_unbookmarked_text">Activity \'%1$s\' was unbookmarked.</string>
     <!--endregion Bookmarks Screen-->
 
     <!--region Notification-->
@@ -75,5 +76,6 @@
     <string name="visit_page_action">Visit page</string>
     <string name="bookmark_activity_action_description">Bookmark this activity</string>
     <string name="unbookmark_activity_action_description">Unbookmark this activity</string>
+    <string name="undo_action">Undo</string>
     <!--endregion Actions-->
 </resources>

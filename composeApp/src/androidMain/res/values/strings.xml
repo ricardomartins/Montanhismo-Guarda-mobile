@@ -12,6 +12,7 @@
     <string name="title_bookmarks">Favoritos</string>
     <string name="empty_state_headline_bookmarks">Nenhum favorito</string>
     <string name="empty_state_description_bookmarks">Marca um evento como favorito para aparecer aqui.</string>
+    <string name="bookmarks_snackbar_unbookmarked_text">A atividade \'%1$s\' foi desmarcarda dos favoritos.</string>
     <!--endregion Bookmarks Screen-->
 
     <!--region Notification-->
@@ -75,6 +76,7 @@
     <string name="visit_page_action">Visitar a página</string>
     <string name="bookmark_activity_action_description">Marcar esta atividade</string>
     <string name="unbookmark_activity_action_description">Desmarcar esta atividade</string>
+    <string name="undo_action">Desfazer</string>
     <!--endregion Actions-->
 
 </resources>
