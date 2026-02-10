@@ -28,14 +28,13 @@ import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     scaffoldViewModel: ScaffoldViewModel,
-    navigateToDetails: (event: CalendarEvent) -> Unit,
+    navigateToDetails: (event: UiEventWithBookmark) -> Unit,
 ) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
@@ -113,10 +112,20 @@ fun CalendarScreen(
         state = listState,
     ) {
         items(weeks, key = { it.monday.toEpochDays() }) { weekOfEvents ->
-            Week(weekOfEvents, today) { viewModel.setSelectedEvent(it) }
+            Week(
+                weekOfEvents = weekOfEvents,
+                today = today,
+                onEventClick = { viewModel.setSelectedEvent(it) },
+                setImageSize = { ofEvent, withSize -> viewModel.updateImageSize(
+                    ofEvent = ofEvent,
+                    withWidth = withSize.width,
+                    andHeight = withSize.height,
+                ) },
+            )
             HorizontalDivider()
         }
     }
+
     val selectedEventVal = selectedEvent
     if (selectedEventVal != null) EventActionsDialog(
         event = selectedEventVal,
@@ -127,5 +136,4 @@ fun CalendarScreen(
         },
         setBookmarkTo = { viewModel.setBookmarkOfEventTo(selectedEventVal, it) },
     ) { viewModel.unsetSelectedEvent() }
-
 }

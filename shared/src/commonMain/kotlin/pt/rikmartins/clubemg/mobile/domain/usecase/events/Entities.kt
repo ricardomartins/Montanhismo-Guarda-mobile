@@ -37,12 +37,6 @@ interface EventWithBookmark : CalendarEvent {
     val isBookmarked: Boolean
 }
 
-interface EventBookmarkWithEvent {
-    val id: String
-    val isBookmarked: Boolean
-    val event: CalendarEvent?
-}
-
 // TODO: Turn to an interface
 data class EventDiff(
     val oldEvent: CalendarEvent,
@@ -53,3 +47,35 @@ interface RefreshState {
     val singularEventIds: Collection<String>
     val dateRanges: Collection<LocalDateRange>
 }
+
+internal data class EventWithBookmarkImpl(
+    override val id: String,
+    override val creationDate: Instant,
+    override val modifiedDate: Instant,
+    override val title: String,
+    override val url: String,
+    override val startDate: Instant,
+    override val endDate: Instant,
+    override val enrollmentUrl: String,
+    override val images: List<EventImage>,
+    override val isBookmarked: Boolean,
+    override val eventStatusType: EventStatusType?,
+    override val eventAttendanceMode: EventAttendanceMode?,
+) : EventWithBookmark {
+
+    constructor(calendarEvent: CalendarEvent, isBookmarked: Boolean) : this(
+        id = calendarEvent.id,
+        creationDate = calendarEvent.creationDate,
+        modifiedDate = calendarEvent.modifiedDate,
+        title = calendarEvent.title,
+        url = calendarEvent.url,
+        startDate = calendarEvent.startDate,
+        endDate = calendarEvent.endDate,
+        enrollmentUrl = calendarEvent.enrollmentUrl,
+        images = calendarEvent.images,
+        isBookmarked = isBookmarked,
+        eventStatusType = calendarEvent.eventStatusType,
+        eventAttendanceMode = calendarEvent.eventAttendanceMode,
+    )
+}
+

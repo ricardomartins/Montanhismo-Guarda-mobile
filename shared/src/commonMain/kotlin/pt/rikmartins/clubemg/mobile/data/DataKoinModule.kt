@@ -66,7 +66,7 @@ internal val dataModule = module {
         ObserveAllFavouriteEvents.EventsProvider::class,
     )
 
-    singleOf(::BookmarkRepository) binds arrayOf(
+    single { BookmarkRepository(get()) } binds arrayOf(
         SynchronizeFavouriteEvents.BookmarkProvider::class,
         SetBookmarkOfEventId.BookmarkProvider::class,
         ObserveAllEvents.BookmarkProvider::class,

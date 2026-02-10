@@ -47,7 +47,8 @@ private val WEEK_HEIGHT_IN_DP = WEEK_HEIGHT.dp
 internal fun Week(
     weekOfEvents: WeekOfEvents,
     today: LocalDate?,
-    onEventClick: (event: SimplifiedEvent) -> Unit,
+    onEventClick: (event: UiEventWithBookmark) -> Unit,
+    setImageSize: (of: UiEventWithBookmark, withSize: IntSize) -> Unit,
 ) = Box(contentAlignment = Alignment.BottomCenter) {
     var dayLabelSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -74,7 +75,7 @@ internal fun Week(
         )
     }
     if (weekOfEvents.events.isNotEmpty())
-        EventsOnWeek(weekOfEvents, onEventClick, modifier = Modifier.height(eventsHeight))
+        EventsOnWeek(weekOfEvents, onEventClick, setImageSize, modifier = Modifier.height(eventsHeight))
 }
 
 @Composable

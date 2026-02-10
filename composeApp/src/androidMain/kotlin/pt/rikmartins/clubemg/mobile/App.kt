@@ -40,6 +40,7 @@ import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.ui.BookmarksScreen
 import pt.rikmartins.clubemg.mobile.ui.EventDetailScreen
 import pt.rikmartins.clubemg.mobile.ui.CalendarScreen
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 import pt.rikmartins.clubemg.mobile.ui.theme.AppTheme
 
 sealed interface AppDestination {
@@ -159,6 +160,8 @@ fun App() {
                 }
             }
         ) { paddingValues ->
+            val navigateToDetails: (event: UiEventWithBookmark) -> Unit = { event -> uriHandler.openUri(event.url) }
+
             NavHost(
                 navController = navController,
                 startDestination = AppDestination.Main.Calendar,
@@ -168,12 +171,15 @@ fun App() {
             ) {
                 composable<AppDestination.Main.Calendar> {
                     CalendarScreen(
-                        scaffoldViewModel,
-                        navigateToDetails = { event -> uriHandler.openUri(event.url) }
+                        scaffoldViewModel = scaffoldViewModel,
+                        navigateToDetails = navigateToDetails,
                     )
                 }
                 composable<AppDestination.Main.Bookmarks> {
-                    BookmarksScreen(scaffoldViewModel)
+                    BookmarksScreen(
+                        scaffoldViewModel = scaffoldViewModel,
+                        navigateToDetails = navigateToDetails,
+                    )
                 }
                 composable<AppDestination.Main.Settings> {
                     // Placeholder

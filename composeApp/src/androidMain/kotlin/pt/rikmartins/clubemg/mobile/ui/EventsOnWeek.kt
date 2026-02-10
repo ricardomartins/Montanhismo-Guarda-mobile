@@ -12,10 +12,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,21 +35,21 @@ interface EventRow {
     sealed interface ThatAccepts {
         interface StartSpan<TARGET : Span.Double> : ThatAccepts {
             fun addEventThatSpansWeekdays(
-                event: SimplifiedEvent,
+                event: UiEventWithBookmark,
                 fromPreviousWeek: Boolean,
             ): TARGET
 
             fun addEventThatSpansWeekdaysAndSaturday(
-                event: SimplifiedEvent,
+                event: UiEventWithBookmark,
                 fromPreviousWeek: Boolean,
             ): TARGET
 
-            fun addEventThatSpansSaturday(event: SimplifiedEvent): TARGET
+            fun addEventThatSpansSaturday(event: UiEventWithBookmark): TARGET
         }
 
         interface EndSpan<TARGET : Span.Double> : ThatAccepts {
             fun addEventThatSpansSunday(
-                event: SimplifiedEvent,
+                event: UiEventWithBookmark,
                 toNextWeek: Boolean
             ): TARGET
         }
@@ -61,15 +57,15 @@ interface EventRow {
 
     sealed interface Span : EventRow {
         sealed interface Single : Span {
-            val event: SimplifiedEvent
+            val event: UiEventWithBookmark
 
             data class Weekdays(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
                 val fromPreviousWeek: Boolean,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: SimplifiedEvent,
+                    event: UiEventWithBookmark,
                     toNextWeek: Boolean
                 ) = Double.WeekdaysPlusSunday(
                     startEvent = this.event,
@@ -80,12 +76,12 @@ interface EventRow {
             }
 
             data class WeekdaysAndSaturday(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
                 val fromPreviousWeek: Boolean,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: SimplifiedEvent,
+                    event: UiEventWithBookmark,
                     toNextWeek: Boolean
                 ) = Double.WeekdaysAndSaturdayPlusSunday(
                     startEvent = this.event,
@@ -96,17 +92,17 @@ interface EventRow {
             }
 
             data class WholeWeek(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
                 val fromPreviousWeek: Boolean,
                 val toNextWeek: Boolean,
             ) : Single
 
             data class Saturday(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
             ) : Single, ThatAccepts.EndSpan<Double> {
 
                 override fun addEventThatSpansSunday(
-                    event: SimplifiedEvent,
+                    event: UiEventWithBookmark,
                     toNextWeek: Boolean
                 ) = Double.SaturdayPlusSunday(
                     startEvent = this.event,
@@ -116,17 +112,17 @@ interface EventRow {
             }
 
             data class Weekend(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
                 val toNextWeek: Boolean,
             ) : Single
 
             data class Sunday(
-                override val event: SimplifiedEvent,
+                override val event: UiEventWithBookmark,
                 val toNextWeek: Boolean,
             ) : Single, ThatAccepts.StartSpan<Double> {
 
                 override fun addEventThatSpansWeekdays(
-                    event: SimplifiedEvent,
+                    event: UiEventWithBookmark,
                     fromPreviousWeek: Boolean
                 ) = Double.WeekdaysPlusSunday(
                     startEvent = event,
@@ -136,7 +132,7 @@ interface EventRow {
                 )
 
                 override fun addEventThatSpansWeekdaysAndSaturday(
-                    event: SimplifiedEvent,
+                    event: UiEventWithBookmark,
                     fromPreviousWeek: Boolean
                 ) = Double.WeekdaysAndSaturdayPlusSunday(
                     startEvent = event,
@@ -145,7 +141,7 @@ interface EventRow {
                     toNextWeek = toNextWeek
                 )
 
-                override fun addEventThatSpansSaturday(event: SimplifiedEvent) =
+                override fun addEventThatSpansSaturday(event: UiEventWithBookmark) =
                     Double.SaturdayPlusSunday(
                         startEvent = event,
                         endEvent = this.event,
@@ -155,26 +151,26 @@ interface EventRow {
         }
 
         sealed interface Double : Span {
-            val startEvent: SimplifiedEvent
-            val endEvent: SimplifiedEvent
+            val startEvent: UiEventWithBookmark
+            val endEvent: UiEventWithBookmark
 
             data class WeekdaysPlusSunday(
-                override val startEvent: SimplifiedEvent,
+                override val startEvent: UiEventWithBookmark,
                 val fromPreviousWeek: Boolean,
-                override val endEvent: SimplifiedEvent,
+                override val endEvent: UiEventWithBookmark,
                 val toNextWeek: Boolean,
             ) : Double
 
             data class WeekdaysAndSaturdayPlusSunday(
-                override val startEvent: SimplifiedEvent,
+                override val startEvent: UiEventWithBookmark,
                 val fromPreviousWeek: Boolean,
-                override val endEvent: SimplifiedEvent,
+                override val endEvent: UiEventWithBookmark,
                 val toNextWeek: Boolean,
             ) : Double
 
             data class SaturdayPlusSunday(
-                override val startEvent: SimplifiedEvent,
-                override val endEvent: SimplifiedEvent,
+                override val startEvent: UiEventWithBookmark,
+                override val endEvent: UiEventWithBookmark,
                 val toNextWeek: Boolean,
             ) : Double
         }
@@ -184,7 +180,8 @@ interface EventRow {
 @Composable
 internal fun EventsOnWeek(
     weekOfEvents: WeekOfEvents,
-    onEventClick: (event: SimplifiedEvent) -> Unit,
+    onEventClick: (event: UiEventWithBookmark) -> Unit,
+    setImageSize: (of: UiEventWithBookmark, withSize: IntSize) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val monday = weekOfEvents.monday
@@ -253,30 +250,38 @@ internal fun EventsOnWeek(
     }
 
     Column(modifier = modifier) {
-        val showImage = rows.size < 2
-
         rows.forEach { eventRow ->
             Row(Modifier.weight(1f)) {
                 when (eventRow) {
                     is EventRow.Span.Single.Weekdays -> {
-                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.event,
+                            onEventClick,
+                            setImageSize,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
                     }
 
                     is EventRow.Span.Single.WeekdaysAndSaturday -> {
                         EventCard(
                             eventRow.event,
-                            showImage,
                             onEventClick,
-                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT)
+                            setImageSize,
+                            modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
                         )
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
-                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event, showImage, onEventClick)
+                    is EventRow.Span.Single.WholeWeek -> EventCard(eventRow.event, onEventClick, setImageSize)
                     is EventRow.Span.Single.Saturday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
-                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.event,
+                            onEventClick,
+                            setImageSize,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT),
+                        )
                         Spacer(modifier.weight(FULL_DAY_WEIGHT))
                     }
 
@@ -284,29 +289,34 @@ internal fun EventsOnWeek(
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
                         EventCard(
                             eventRow.event,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT + FULL_DAY_WEIGHT),
                         )
                     }
 
                     is EventRow.Span.Single.Sunday -> {
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT))
-                        EventCard(eventRow.event, showImage, onEventClick, modifier = Modifier.weight(FULL_DAY_WEIGHT))
+                        EventCard(
+                            eventRow.event,
+                            onEventClick,
+                            setImageSize,
+                            modifier = Modifier.weight(FULL_DAY_WEIGHT)
+                        )
                     }
 
                     is EventRow.Span.Double.WeekdaysPlusSunday -> {
                         EventCard(
                             eventRow.startEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT)
                         )
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
                         EventCard(
                             eventRow.endEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT)
                         )
                     }
@@ -314,14 +324,14 @@ internal fun EventsOnWeek(
                     is EventRow.Span.Double.WeekdaysAndSaturdayPlusSunday -> {
                         EventCard(
                             eventRow.startEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT),
                         )
                         EventCard(
                             eventRow.endEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT)
                         )
                     }
@@ -330,14 +340,14 @@ internal fun EventsOnWeek(
                         Spacer(modifier.weight(COMPACT_DAY_WEIGHT))
                         EventCard(
                             eventRow.startEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT)
                         )
                         EventCard(
                             eventRow.endEvent,
-                            showImage,
                             onEventClick,
+                            setImageSize,
                             modifier = Modifier.weight(FULL_DAY_WEIGHT)
                         )
                     }
@@ -349,9 +359,9 @@ internal fun EventsOnWeek(
 
 @Composable
 private fun EventCard(
-    event: SimplifiedEvent,
-    showImage: Boolean,
-    onEventClick: (event: SimplifiedEvent) -> Unit,
+    event: UiEventWithBookmark,
+    onEventClick: (event: UiEventWithBookmark) -> Unit,
+    setImageSize: (of: UiEventWithBookmark, withSize: IntSize) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
@@ -360,29 +370,26 @@ private fun EventCard(
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
         onClick = { onEventClick(event) },
     ) {
-        if (showImage) {
-            var imageSize by remember { mutableStateOf(IntSize.Zero) }
-            val selectedImage = remember(imageSize) {
-                event.sortedImages.firstOrNull {
-                    it.width > imageSize.width && it.height > imageSize.height
-                }?.url
-            }
+        val imageUrl = event.preferredImageUrl
 
-            if (selectedImage != null) AsyncImage(
-                model = selectedImage,
-                contentDescription = "${event.title} cover image", // TODO: Localize
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .onSizeChanged { imageSize = it }
-                    .clip(MaterialTheme.shapes.medium),
-                contentScale = ContentScale.Crop,
-                alignment = Alignment.Center,
-                placeholder = painterResource(id = R.drawable.fallback),
-                error = painterResource(id = R.drawable.fallback),
-                fallback = painterResource(id = R.drawable.fallback),
-            )
-        }
+        if (imageUrl != null) AsyncImage(
+            model = imageUrl,
+            contentDescription = "${event.title} cover image", // TODO: Localize
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .run {
+                    if (imageUrl == CalendarViewModel.IMAGE_URL_SIGNAL_WAITING)
+                        this.onSizeChanged { setImageSize(event, it) }
+                    else this
+                }
+                .clip(MaterialTheme.shapes.medium),
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.Center,
+            placeholder = painterResource(id = R.drawable.fallback),
+            error = painterResource(id = R.drawable.fallback),
+            fallback = painterResource(id = R.drawable.fallback),
+        )
         Row {
             Column(modifier = Modifier.weight(1f)) {
                 Text(

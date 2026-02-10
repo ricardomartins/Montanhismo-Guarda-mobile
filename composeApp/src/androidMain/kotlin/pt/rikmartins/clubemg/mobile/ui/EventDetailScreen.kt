@@ -46,7 +46,7 @@ fun EventDetailScreen(eventId: String, navigateBack: () -> Unit) {
 
 @Composable
 private fun EventDetails(
-    obj: SimplifiedEvent,
+    obj: UiEventWithBookmark,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

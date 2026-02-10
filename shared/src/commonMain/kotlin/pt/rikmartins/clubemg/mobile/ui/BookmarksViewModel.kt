@@ -9,74 +9,135 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDateRange
+import kotlinx.datetime.TimeZone
 import pt.rikmartins.clubemg.mobile.addAllWhen
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
 class BookmarksViewModel(
     observeAllFavouriteEvents: ObserveAllFavouriteEvents,
     private val setBookmarkOfEventId: SetBookmarkOfEventId,
     private val getCalendarTimeZone: GetCalendarTimeZone,
+    private val refreshEvent: RefreshEvent,
+    observeRefreshing: ObserveRefreshing,
 ) : ViewModel() {
 
-    private val recentlyUnbookmarkedEvents = MutableStateFlow<Collection<UiEventBookmarkWithEvent>>(emptySet())
+    private val recentlyUnbookmarkedEvents = MutableStateFlow<Collection<BookmarksUiEventWithBookmark>>(emptySet())
 
     private val eventImageOutputSize = MutableStateFlow<ImageSize?>(null)
 
     private val calendarTimeZoneFlow = flow { emit(getCalendarTimeZone()) }
 
+    val selectedEvent = MutableStateFlow<UiEventWithBookmark?>(null)
+
     @OptIn(FlowPreview::class)
-    val model: StateFlow<List<UiEventBookmarkWithEvent>> = combine(
+    val model: StateFlow<List<UiEventWithBookmark>> = combine(
         combine(
             observeAllFavouriteEvents(),
-            recentlyUnbookmarkedEvents
-        ) { bookmarked, unbookmarked ->
+            recentlyUnbookmarkedEvents,
+            calendarTimeZoneFlow,
+        ) { bookmarked, unbookmarked, timeZone ->
             buildSet {
-                addAll(bookmarked)
+                addAll(bookmarked.map { BookmarksUiEventWithBookmark(it, timeZone) })
                 addAllWhen(unbookmarked) { event -> bookmarked.none { it.id == event.id } }
             }
         },
         eventImageOutputSize,
-        calendarTimeZoneFlow
-    ) { events, imageSize, timeZone ->
+    ) { events, imageSize ->
         events.map { event ->
-            UiEventBookmarkWithEvent(
-                id = event.id,
-                isBookmarked = event.isBookmarked,
-                event = event.event,
-                imageUrl = imageSize?.let {
-                    event.event?.images?.sortedBy { it.fileSize }
-                        ?.firstOrNull { it.width > imageSize.width && it.height > imageSize.height }
+            event.copy(
+                preferredImageUrl = imageSize?.let {
+                    event.calendarEvent.images
+                        .sortedBy { it.fileSize }
+                        .firstOrNull { it.width > imageSize.width && it.height > imageSize.height }
                         ?.url
-                },
-                timeZone = timeZone,
-            )
+                }
+            ).also { event ->
+                selectedEvent.update { selectedEvent ->
+                    if (event.id == selectedEvent?.id) event else selectedEvent
+                }
+            }
         }
     }
         .debounce(200)
-        .map { events -> events.sortedBy { it.event?.startDate } }
+        .map { events -> events.sortedBy { it.calendarEvent.startDate } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun unbookmarkEvent(event: UiEventBookmarkWithEvent) {
+    private val refreshing = observeRefreshing()
+
+    val refreshingEventIds = refreshing.map { it.singularEventIds }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSelectedEvent(event: UiEventWithBookmark) {
+        viewModelScope.launch { refreshEvent(event.id) }
+        selectedEvent.value = event
+    }
+
+    fun unsetSelectedEvent() {
+        selectedEvent.value = null
+    }
+
+    fun unbookmarkEvent(event: UiEventWithBookmark) {
         recentlyUnbookmarkedEvents.update { unbookmarked ->
-            if (unbookmarked.none { it.id == event.id }) unbookmarked + event.copy(isBookmarked = false)
+            if (unbookmarked.none { it.id == event.id }) unbookmarked + event.asBookmarksEntity(isBookmarked = false)
             else unbookmarked
         }
         viewModelScope.launch { setBookmarkOfEventId(event.id, false) }
     }
 
-    fun bookmarkEvent(event: UiEventBookmarkWithEvent) {
+    fun bookmarkEvent(event: UiEventWithBookmark) {
         recentlyUnbookmarkedEvents.update { unbookmarked ->
             unbookmarked.find { it.id == event.id }?.let { unbookmarked - it } ?: unbookmarked
         }
         viewModelScope.launch { setBookmarkOfEventId(event.id, true) }
     }
 
-    fun updateImageSize(width: Float, height: Float) = eventImageOutputSize.update { ImageSize(width, height) }
+    fun updateImageSize(width: Int, height: Int) = eventImageOutputSize.update { ImageSize(width, height) }
 
-    private data class ImageSize(val width: Float, val height: Float)
+    private data class BookmarksUiEventWithBookmark(
+        override val calendarEvent: EventWithBookmark,
+        override val range: LocalDateRange,
+        override val isBookmarked: Boolean,
+        override val preferredImageUrl: String? = null,
+    ) : UiEventWithBookmark {
+
+        constructor(
+            calendarEvent: EventWithBookmark,
+            timeZone: TimeZone,
+            preferredImageUrl: String? = null
+        ) : this(
+            calendarEvent = calendarEvent,
+            range = with(calendarEvent) {
+                startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
+            },
+            isBookmarked = calendarEvent.isBookmarked,
+            preferredImageUrl = preferredImageUrl,
+        )
+
+        override val id: String
+            get() = calendarEvent.id
+        override val title: String
+            get() = calendarEvent.title
+        override val url: String
+            get() = calendarEvent.url
+    }
+
+    private fun UiEventWithBookmark.asBookmarksEntity(isBookmarked: Boolean? = null) = BookmarksUiEventWithBookmark(
+        calendarEvent = calendarEvent,
+        range = range,
+        isBookmarked = isBookmarked ?: this.isBookmarked,
+        preferredImageUrl = preferredImageUrl
+    )
+
+    private data class ImageSize(val width: Int, val height: Int)
 }

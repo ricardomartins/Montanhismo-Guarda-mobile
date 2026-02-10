@@ -12,24 +12,31 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.update
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateRange
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 import pt.rikmartins.clubemg.mobile.ui.WeekUtils.getMondaysInRange
+import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
@@ -47,6 +54,7 @@ class CalendarViewModel(
 
     private val visibleDates = MutableStateFlow<LocalDateRange?>(null)
     private val filteredVisibleDates = visibleDates.filterNotNull().sample(500)
+    private val eventImageUrlMapFlow = MutableStateFlow<Map<String, String?>>(emptyMap())
 
     init {
         viewModelScope.launch {
@@ -76,8 +84,10 @@ class CalendarViewModel(
     val refreshingEventIds = refreshing.map { it.singularEventIds }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val calendarTimeZoneFlow = flow { emit(getCalendarTimeZone()) }
+
     val model = combine(
-        combine(datesThatWereEverVisible.sample(500), calendarCurrentDay) { weekLimits, currentDay ->
+        combine(datesThatWereEverVisible, calendarCurrentDay) { weekLimits, currentDay ->
             val newStart = maxOf(
                 weekLimits.start.minus(6, DateTimeUnit.MONTH),
                 currentDay.minus(2, DateTimeUnit.YEAR)
@@ -90,18 +100,24 @@ class CalendarViewModel(
             newStart..newEnd to currentDay
         },
         observeAllEvents(),
-    ) { (weekLimits, currentDay), events ->
-        val calendarTimeZone = getCalendarTimeZone()
-
+        eventImageUrlMapFlow,
+        calendarTimeZoneFlow,
+    ) { (weekLimits, currentDay), events, eventImageUrlMap, timeZone ->
         val mondays = getMondaysInRange(weekLimits)
-        val simplifiedEvents = events.map { SimplifiedEvent(it, calendarTimeZone) }
+        val uiEventWithBookmarks = events.map {
+            val imageUrl =
+                if (eventImageUrlMap.contains(it.id)) eventImageUrlMap[it.id]
+                else IMAGE_URL_SIGNAL_WAITING
+
+            CalendarUiEventWithBookmark(it, timeZone, imageUrl)
+        }
 
         selectedEvent.value?.id?.let { selectedEventId ->
-            simplifiedEvents.find { it.id == selectedEventId }?.let { selectedEvent.value = it }
+            uiEventWithBookmarks.find { it.id == selectedEventId }?.let { selectedEvent.value = it }
         }
 
         buildMap {
-            simplifiedEvents.forEach { simplifiedEvent ->
+            uiEventWithBookmarks.forEach { simplifiedEvent ->
                 val mondayIter = mondays.iterator()
                 while (mondayIter.hasNext()) {
                     val currentMonday = mondayIter.next()
@@ -132,9 +148,9 @@ class CalendarViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null))
 
-    val selectedEvent = MutableStateFlow<SimplifiedEvent?>(null)
+    val selectedEvent = MutableStateFlow<UiEventWithBookmark?>(null)
 
-    fun setSelectedEvent(event: SimplifiedEvent) {
+    fun setSelectedEvent(event: UiEventWithBookmark) {
         viewModelScope.launch { refreshEvent(event.id) }
         selectedEvent.value = event
     }
@@ -142,7 +158,6 @@ class CalendarViewModel(
     fun unsetSelectedEvent() {
         selectedEvent.value = null
     }
-
 
     fun notifyViewedDates(dateRange: LocalDateRange) {
         visibleDates.value = dateRange
@@ -158,9 +173,68 @@ class CalendarViewModel(
         }
     }
 
-    fun setBookmarkOfEventTo(event: SimplifiedEvent, isBookmarked: Boolean) {
+    fun setBookmarkOfEventTo(event: UiEventWithBookmark, isBookmarked: Boolean) {
         viewModelScope.launch {
             setBookmarkOfEventId(event.id, isBookmarked)
         }
+    }
+
+    fun updateImageSize(ofEvent: UiEventWithBookmark, withWidth: Int, andHeight: Int) =
+        eventImageUrlMapFlow.update { mappings ->
+            if (mappings[ofEvent.id] != null) return@update mappings
+
+            val images = ofEvent.calendarEvent.images.takeIf { it.isNotEmpty() }
+                ?: return@update mappings + (ofEvent.id to null)
+
+            val sortedImages = images.sortedBy { it.fileSize }
+
+            val originalImgAspectRatio = with(sortedImages.last()) { width.toFloat() / height.toFloat() }
+            val targetAspectRatio = withWidth.toFloat() / andHeight.toFloat()
+
+            val lnOfOriginal = ln(originalImgAspectRatio)
+            val lnOfTarget = ln(targetAspectRatio)
+            val absoluteDifferenceOfLns = abs(lnOfOriginal - lnOfTarget)
+            if (absoluteDifferenceOfLns > ORIGINAL_TO_TARGET_ASPECT_RATIO_ACCEPTANCE)
+                return@update mappings + (ofEvent.id to null)
+
+            val selectedImage = sortedImages.firstOrNull { it.width > withWidth && it.height > andHeight }?.url
+            return@update mappings + (ofEvent.id to selectedImage)
+        }
+
+    private data class CalendarUiEventWithBookmark(
+        override val calendarEvent: EventWithBookmark,
+        override val range: LocalDateRange,
+        override val isBookmarked: Boolean,
+        override val preferredImageUrl: String?,
+    ) : UiEventWithBookmark {
+
+        constructor(
+            calendarEvent: EventWithBookmark,
+            timeZone: TimeZone,
+            preferredImageUrl: String?,
+        ) : this(
+            calendarEvent = calendarEvent,
+            range = with(calendarEvent) {
+                startDate.toLocalDate(timeZone)..endDate.toLocalDate(timeZone)
+            },
+            isBookmarked = calendarEvent.isBookmarked,
+            preferredImageUrl = preferredImageUrl,
+        )
+
+        override val id: String
+            get() = calendarEvent.id
+        override val title: String
+            get() = calendarEvent.title
+        override val url: String
+            get() = calendarEvent.url
+    }
+
+    companion object {
+        /**
+         * To signal that measures from the view are still missing, before an actual image url is provided.
+         */
+        const val IMAGE_URL_SIGNAL_WAITING = "Waiting"
+
+        private const val ORIGINAL_TO_TARGET_ASPECT_RATIO_ACCEPTANCE = 1.75f
     }
 }

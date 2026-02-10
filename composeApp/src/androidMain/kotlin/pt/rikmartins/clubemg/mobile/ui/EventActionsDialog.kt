@@ -42,13 +42,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 
 @Composable
 fun EventActionsDialog(
-    event: SimplifiedEvent,
+    event: UiEventWithBookmark,
     refreshingEventIds: Collection<String>,
-    navigateToDetails: (event: CalendarEvent) -> Unit,
+    navigateToDetails: (event: UiEventWithBookmark) -> Unit,
     setBookmarkTo: (Boolean) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
@@ -93,7 +92,7 @@ fun EventActionsDialog(
             shape = RoundedCornerShape(28.dp)
         ) {
             val fallback = painterResource(id = R.drawable.fallback)
-            val selectedImage = remember(event) { event.sortedImages.firstOrNull { it.id == null } }
+            val selectedImage = remember(event) { event.calendarEvent.images.firstOrNull { it.id == null } }
 
             AsyncImage(
                 model = selectedImage?.url,
@@ -127,7 +126,7 @@ fun EventActionsDialog(
                 Button(
                     colors = ButtonDefaults.textButtonColors(),
                     shape = ButtonDefaults.textShape,
-                    onClick = { navigateToDetails(event.calendarEvent) }
+                    onClick = { navigateToDetails(event) }
                 ) {
                     Text(stringResource(R.string.visit_page_action))
                 }
@@ -150,24 +149,22 @@ fun EventActionsDialog(
         }
     }
 
-    if (showRationale) {
-        AlertDialog(
-            onDismissRequest = { showRationale = false },
-            icon = { Icon(painterResource(R.drawable.ic_notifications_off), null) }, // FIXME: Localize
-            title = { Text(stringResource(R.string.notification_permission_rationale_title)) },
-            text = { Text(stringResource(R.string.notification_permission_rationale_text)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showRationale = false
-                    // Launch the permission request
-                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }) { Text(stringResource(R.string.notification_permission_rationale_positive_action)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRationale = false }) {
-                    Text(stringResource(R.string.notification_permission_rationale_negative_action))
-                }
+    if (showRationale) AlertDialog(
+        onDismissRequest = { showRationale = false },
+        icon = { Icon(painterResource(R.drawable.ic_notifications_off), null) }, // FIXME: Localize
+        title = { Text(stringResource(R.string.notification_permission_rationale_title)) },
+        text = { Text(stringResource(R.string.notification_permission_rationale_text)) },
+        confirmButton = {
+            TextButton(onClick = {
+                showRationale = false
+                // Launch the permission request
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }) { Text(stringResource(R.string.notification_permission_rationale_positive_action)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { showRationale = false }) {
+                Text(stringResource(R.string.notification_permission_rationale_negative_action))
             }
-        )
-    }
+        }
+    )
 }

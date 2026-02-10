@@ -3,7 +3,6 @@ package pt.rikmartins.clubemg.mobile.domain.usecase.events
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
-import kotlin.time.Instant
 
 class ObserveAllEvents(private val eventsProvider: EventsProvider, private val bookmarkProvider: BookmarkProvider) : WatchCase.Supplier<List<EventWithBookmark>>() {
 
@@ -36,19 +35,4 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
     interface BookmarkProvider {
         val favouriteEventsIds: Flow<Collection<String>>
     }
-
-    private data class EventWithBookmarkImpl(
-        override val id: String,
-        override val creationDate: Instant,
-        override val modifiedDate: Instant,
-        override val title: String,
-        override val url: String,
-        override val startDate: Instant,
-        override val endDate: Instant,
-        override val enrollmentUrl: String,
-        override val images: List<EventImage>,
-        override val isBookmarked: Boolean,
-        override val eventStatusType: EventStatusType?,
-        override val eventAttendanceMode: EventAttendanceMode?,
-    ) : EventWithBookmark
 }

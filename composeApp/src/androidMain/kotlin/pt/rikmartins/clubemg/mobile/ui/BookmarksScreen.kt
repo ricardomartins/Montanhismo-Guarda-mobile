@@ -36,9 +36,14 @@ import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
 
 @Composable
-fun BookmarksScreen(scaffoldViewModel: ScaffoldViewModel) {
+fun BookmarksScreen(
+    scaffoldViewModel: ScaffoldViewModel,
+    navigateToDetails: (event: UiEventWithBookmark) -> Unit,
+) {
     val viewModel: BookmarksViewModel = koinViewModel()
+    val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
     val bookmarkedEvents by viewModel.model.collectAsStateWithLifecycle()
+    val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
 
@@ -64,18 +69,34 @@ fun BookmarksScreen(scaffoldViewModel: ScaffoldViewModel) {
                     if (isBookmarked) viewModel.bookmarkEvent(event)
                     else viewModel.unbookmarkEvent(event)
                 },
-                onSizeChanged = { viewModel.updateImageSize(it.width.toFloat(), it.height.toFloat()) }
+                onEventClick = { viewModel.setSelectedEvent(it) },
+                onSizeChanged = { viewModel.updateImageSize(it.width, it.height) }
             )
         }
     }
+
+    val selectedEventVal = selectedEvent
+    if (selectedEventVal != null) EventActionsDialog(
+        event = selectedEventVal,
+        refreshingEventIds = refreshingEventIds,
+        navigateToDetails = {
+            navigateToDetails(it)
+            viewModel.unsetSelectedEvent()
+        },
+        setBookmarkTo = {
+            if (it) viewModel.bookmarkEvent(selectedEventVal)
+            else viewModel.unbookmarkEvent(selectedEventVal)
+        },
+    ) { viewModel.unsetSelectedEvent() }
 }
 
 private const val IMAGE_ASPECT_RATIO = 4758f / 6892f // Usual size for a poster
 
 @Composable
 private fun Bookmark(
-    event: UiEventBookmarkWithEvent,
+    event: UiEventWithBookmark,
     setBookmark: (Boolean) -> Unit,
+    onEventClick: (event: UiEventWithBookmark) -> Unit,
     onSizeChanged: ((IntSize) -> Unit)? = null,
 ) {
 
@@ -83,17 +104,13 @@ private fun Bookmark(
         modifier = Modifier
             .wrapContentHeight()
             .fillMaxWidth(),
+        onClick = { onEventClick(event) }
     ) {
-        // TODO: Add click event when event.event is not null
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             // TODO: Localize
-            val contentDescription = event.event?.title
-                ?.let { title -> "Cover image of event $title" }
-                ?: "Cover image of unknown event"
-
             AsyncImage(
-                model = event.imageUrl,
-                contentDescription = contentDescription,
+                model = event.preferredImageUrl,
+                contentDescription = "Cover image of event $event.title",
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(IMAGE_ASPECT_RATIO)
@@ -113,7 +130,7 @@ private fun Bookmark(
                     .padding(start = 12.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             ) {
                 EventInfo(
-                    title = event.event?.title,
+                    title = event.title,
                     range = event.range,
                     isBookmarked = false,
                     modifier = Modifier.weight(1f)
