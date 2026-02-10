@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.ossLicenses)
 }
 
 kotlin {
@@ -33,6 +34,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.play.services.oss.licenses)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

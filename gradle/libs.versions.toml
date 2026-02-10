@@ -22,6 +22,8 @@ sqlDelight = "2.2.1"
 googleServices = "4.4.4"
 firebaseBom = "34.8.0"
 firebase-crashlytics = "3.0.6"
+ossLicenses = "0.10.10"
+playServicesOssLicenses = "17.4.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -56,6 +58,7 @@ sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+play-services-oss-licenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version.ref = "playServicesOssLicenses" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -69,3 +72,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics" }
+ossLicenses = { id = "com.google.android.gms.oss-licenses-plugin", version.ref = "ossLicenses" }

@@ -54,3 +54,7 @@
 -keepattributes SourceFile,LineNumberTable
 -keep class com.google.firebase.crashlytics.** { *; }
 -dontwarn com.google.firebase.crashlytics.**
+
+# Rule for Play Services OSS Licenses
+-keep class com.google.android.gms.oss.licenses.** { *; }
+-dontwarn com.google.android.gms.oss.licenses.**

@@ -15,6 +15,14 @@
     <string name="bookmarks_snackbar_unbookmarked_text">Activity \'%1$s\' was unbookmarked.</string>
     <!--endregion Bookmarks Screen-->
 
+    <!--region Settings Screen-->
+    <string name="settings_title">Settings</string>
+    <string name="settings_about_section_title">About</string>
+    <string name="settings_about_section_version_title">App Version</string>
+    <string name="settings_about_section_open_source_licenses_title">Open Source Licenses</string>
+    <string name="settings_about_section_open_source_licenses_subtitle">License details for open source software</string>
+    <!--endregion Settings Screen-->
+
     <!--region Notification-->
 
     <!--region Relevant changes-->

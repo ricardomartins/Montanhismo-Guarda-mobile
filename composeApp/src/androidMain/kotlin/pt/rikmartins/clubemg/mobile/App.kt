@@ -189,7 +189,9 @@ fun App() {
                     )
                 }
                 composable<AppDestination.Main.Settings> {
-                    // Placeholder
+                    SettingsScreen(
+                        scaffoldViewModel = scaffoldViewModel,
+                    )
                 }
                 composable<AppDestination.EventDetail> { backStackEntry ->
                     EventDetailScreen(
