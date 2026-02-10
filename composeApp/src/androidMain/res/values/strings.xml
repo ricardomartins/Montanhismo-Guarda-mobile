@@ -5,7 +5,7 @@
     <string name="back">Voltar</string>
 
     <!--region Calendar Screen-->
-    <string name="title_calendar">Calendário de Actividades</string>
+    <string name="title_calendar">Calendário de Atividades</string>
     <!--endregion Calendar Screen-->
 
     <!--region Bookmarks Screen-->
@@ -71,7 +71,7 @@
     <!--endregion Empty state -->
 
     <!--region Actions-->
-    <string name="jump_to_today_action">Pular para hoje</string>
+    <string name="jump_to_today_action">Ir para hoje</string>
     <string name="force_sync_action">Forçar sincronização</string>
     <string name="visit_page_action">Visitar a página</string>
     <string name="bookmark_activity_action_description">Marcar esta atividade</string>
