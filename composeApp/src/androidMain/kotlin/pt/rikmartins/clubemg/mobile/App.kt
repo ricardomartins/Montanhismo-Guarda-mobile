@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -136,8 +136,13 @@ fun App() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
 
-                    val selectedMain = AppDestination.Main.destinations.find { screen ->
-                        currentDestination?.hierarchy?.any { it.route == screen::class.qualifiedName } == true
+                    val selectedMain = currentDestination?.run {
+                        when {
+                            hasRoute<AppDestination.Main.Calendar>() -> AppDestination.Main.Calendar
+                            hasRoute<AppDestination.Main.Bookmarks>() -> AppDestination.Main.Bookmarks
+                            hasRoute<AppDestination.Main.Settings>() -> AppDestination.Main.Settings
+                            else -> null
+                        }
                     }
                     AppDestination.Main.destinations.forEach { screen ->
                         val selected = selectedMain == screen
