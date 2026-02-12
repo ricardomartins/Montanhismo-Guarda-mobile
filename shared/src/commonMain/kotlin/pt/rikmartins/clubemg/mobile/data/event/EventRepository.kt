@@ -156,7 +156,7 @@ class EventRepository(
         .fold(mutableListOf()) { acc, dateRange ->
             acc.apply {
                 if (lastOrNull()?.endInclusive?.plus(PROXIMITY_THRESHOLD)?.let { it >= dateRange.start } ?: false) {
-                    val last = removeLast()
+                    val last = removeAt(lastIndex)
                     add(last.start..dateRange.endInclusive)
                 } else add(dateRange)
             }
