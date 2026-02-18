@@ -12,9 +12,11 @@ interface CalendarEvent {
     val startDate: Instant
     val endDate: Instant
     val enrollmentUrl: String
-    val images: List<EventImage>
+    val images: List<EventImage> // TODO: Change to Collection
     val eventStatusType: EventStatusType?
     val eventAttendanceMode: EventAttendanceMode?
+    val categories: Collection<String>
+    val tags: Collection<String>
 }
 
 interface EventImage {
@@ -61,6 +63,8 @@ internal data class EventWithBookmarkImpl(
     override val isBookmarked: Boolean,
     override val eventStatusType: EventStatusType?,
     override val eventAttendanceMode: EventAttendanceMode?,
+    override val categories: Collection<String>,
+    override val tags: Collection<String>,
 ) : EventWithBookmark {
 
     constructor(calendarEvent: CalendarEvent, isBookmarked: Boolean) : this(
@@ -76,6 +80,8 @@ internal data class EventWithBookmarkImpl(
         isBookmarked = isBookmarked,
         eventStatusType = calendarEvent.eventStatusType,
         eventAttendanceMode = calendarEvent.eventAttendanceMode,
+        categories = calendarEvent.categories,
+        tags = calendarEvent.tags,
     )
 }
 

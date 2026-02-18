@@ -1,3 +1,5 @@
+import kotlin.String;
+import kotlin.collections.Collection;
 import kotlin.time.Instant;
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode;
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType;
@@ -15,7 +17,9 @@ CREATE TABLE CalendarEvent (
     endDate INTEGER AS Instant NOT NULL,
     enrollmentUrl TEXT NOT NULL,
     eventStatusType TEXT AS EventStatusType,
-    eventAttendanceMode TEXT AS EventAttendanceMode
+    eventAttendanceMode TEXT AS EventAttendanceMode,
+    categories TEXT AS Collection<String> NOT NULL,
+    tags TEXT AS Collection<String> NOT NULL
 );
 
 selectEventsInRange:
@@ -30,8 +34,8 @@ FROM CalendarEvent
 WHERE CalendarEvent.id IN ?;
 
 replaceEvent:
-INSERT OR REPLACE INTO CalendarEvent (id, creationDate, modifiedDate, title, url, startDate, endDate, enrollmentUrl)
-VALUES (:id, :creationDate, :modifiedDate, :title, :url, :startDate, :endDate, :enrollmentUrl);
+INSERT OR REPLACE INTO CalendarEvent (id, creationDate, modifiedDate, title, url, startDate, endDate, enrollmentUrl, eventStatusType, eventAttendanceMode, categories, tags)
+VALUES (:id, :creationDate, :modifiedDate, :title, :url, :startDate, :endDate, :enrollmentUrl, :eventStatusType, :eventAttendanceMode, :categories, :tags);
 
 updateEventStatusType:
 UPDATE CalendarEvent

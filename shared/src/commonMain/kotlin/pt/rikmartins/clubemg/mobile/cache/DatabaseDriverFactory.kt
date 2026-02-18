@@ -25,6 +25,8 @@ internal class DatabaseDriverFactory(
             endDateAdapter = instantAdapter,
             eventStatusTypeAdapter = eventStatusTypeAdapter,
             eventAttendanceModeAdapter = eventAttendanceModeAdapter,
+            categoriesAdapter = stringCollectionAdapter,
+            tagsAdapter = stringCollectionAdapter,
         ),
         DateRangeTimestampAdapter = DateRangeTimestamp.Adapter(
             dateRangeStartAdapter = localDateAdapter,
@@ -73,5 +75,17 @@ internal class DatabaseDriverFactory(
         }
 
         override fun encode(value: EventAttendanceMode): String = value.name
+    }
+
+    private val stringCollectionAdapter = object : ColumnAdapter<Collection<String>, String> {
+
+        override fun decode(databaseValue: String): Collection<String> =
+            databaseValue.split(STRING_COLLECTION_SEPARATOR)
+
+        override fun encode(value: Collection<String>): String = value.joinToString(STRING_COLLECTION_SEPARATOR)
+    }
+
+    private companion object {
+        const val STRING_COLLECTION_SEPARATOR = "|"
     }
 }

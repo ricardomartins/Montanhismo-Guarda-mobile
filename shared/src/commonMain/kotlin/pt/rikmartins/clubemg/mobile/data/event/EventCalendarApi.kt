@@ -119,7 +119,7 @@ class EventCalendarApi(
                 flow {
                     pairs.filter { (newest, oldest) ->
                         newest.startOfRange != null && newest.endOfRange != null &&
-                                (oldest == null || oldest.startOfRange == null || oldest.endOfRange == null)
+                                (oldest?.startOfRange == null || oldest.endOfRange == null)
                     }
                         .map { (newest, _) ->
                             emit(
@@ -145,7 +145,6 @@ class EventCalendarApi(
         val startOfRange: LocalDate? = null,
         val endOfRange: LocalDate? = null,
     )
-
 
     override suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent> = supervisorScope {
         _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds + eventsIds) }
@@ -199,6 +198,8 @@ class EventCalendarApi(
             }.orEmpty(),
             eventStatusType = linkedData?.eventStatus?.asEventStatusType(),
             eventAttendanceMode = linkedData?.eventAttendanceMode?.asEventAttendanceMode(),
+            categories = categories.mapTo(mutableSetOf()) { it.slug },
+            tags = tags.mapTo(mutableSetOf()) { it.slug },
         )
     }
 
@@ -247,6 +248,8 @@ class EventCalendarApi(
         override val images: List<ApiEventImage>,
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
+        override val categories: Collection<String>,
+        override val tags: Collection<String>,
     ) : CalendarEvent
 
     private data class ApiEventImage(
@@ -334,6 +337,8 @@ class EventCalendarApi(
         @Serializable(with = ImageStructureItemBooleanSerializer::class)
         val image: ImageStructureItem?,
         @SerialName("json_ld") val linkedData: LinkedData? = null,
+        val categories: List<TaxonomyItem>, // The event categories
+        val tags: List<TaxonomyItem>, // The event tags
     )
 
     private interface ImageStructure {
@@ -365,6 +370,16 @@ class EventCalendarApi(
     private data class LinkedData(
         val eventAttendanceMode: String,
         val eventStatus: String,
+    )
+
+    @Serializable
+    private data class TaxonomyItem(
+        val id: Int,
+        val name: String,
+        val slug: String,
+        val description: String,
+        val parent: Int,
+        val urls: Map<String, String>,
     )
 
     @Serializable

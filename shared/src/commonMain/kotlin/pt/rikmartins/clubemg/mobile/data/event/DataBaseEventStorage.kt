@@ -115,7 +115,20 @@ class DataBaseEventStorage(
     }
 
     private fun EventsQueries.replaceSingleEvent(event: CalendarEvent) {
-        replaceEvent(event.id, event.creationDate, event.modifiedDate, event.title, event.url, event.startDate, event.endDate, event.enrollmentUrl)
+        replaceEvent(
+            id = event.id,
+            creationDate = event.creationDate,
+            modifiedDate = event.modifiedDate,
+            title = event.title,
+            url = event.url,
+            startDate = event.startDate,
+            endDate = event.endDate,
+            enrollmentUrl = event.enrollmentUrl,
+            eventStatusType = event.eventStatusType,
+            eventAttendanceMode = event.eventAttendanceMode,
+            categories = event.categories,
+            tags = event.tags,
+        )
         if (event.eventStatusType != null) updateEventStatusType(event.eventStatusType, event.id)
         if (event.eventAttendanceMode != null) updateEventAttendanceMode(event.eventAttendanceMode, event.id)
         event.images.forEach { replaceEventImage(it.asCacheEventImage(event.id)) }
@@ -213,6 +226,8 @@ class DataBaseEventStorage(
             images = emptyList(),
             eventStatusType = eventStatusType,
             eventAttendanceMode = eventAttendanceMode,
+            categories = categories,
+            tags = tags,
         ),
         newEvent = other
     )
@@ -238,6 +253,8 @@ class DataBaseEventStorage(
         override val images: List<StorageEventImage>,
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
+        override val categories: Collection<String>,
+        override val tags: Collection<String>,
     ) : CalendarEvent
 
     private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
@@ -280,6 +297,8 @@ class DataBaseEventStorage(
                 },
                 eventStatusType = calendarEvent.eventStatusType,
                 eventAttendanceMode = calendarEvent.eventAttendanceMode,
+                categories = calendarEvent.categories,
+                tags = calendarEvent.tags,
             )
         }
 
@@ -314,6 +333,8 @@ class DataBaseEventStorage(
                 },
                 eventStatusType = calendarEvent.eventStatusType,
                 eventAttendanceMode = calendarEvent.eventAttendanceMode,
+                categories = calendarEvent.categories,
+                tags = calendarEvent.tags,
             )
         }
 
