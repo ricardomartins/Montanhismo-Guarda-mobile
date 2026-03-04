@@ -12,11 +12,10 @@ interface CalendarEvent {
     val startDate: Instant
     val endDate: Instant
     val enrollmentUrl: String
-    val images: List<EventImage> // TODO: Change to Collection
+    val images: Collection<EventImage>
     val eventStatusType: EventStatusType?
     val eventAttendanceMode: EventAttendanceMode?
-    val categories: Collection<String>
-    val tags: Collection<String>
+    val taxonomies: Collection<EventTaxonomy>
 }
 
 interface EventImage {
@@ -33,6 +32,17 @@ enum class EventStatusType {
 
 enum class EventAttendanceMode {
     Mixed, Offline, Online;
+}
+
+interface EventTaxonomy {
+    val name: String
+    val slug: String
+    val url: String
+    val taxonomyType: TaxonomyType
+}
+
+enum class TaxonomyType {
+    TAG, CATEGORY;
 }
 
 interface EventWithBookmark : CalendarEvent {
@@ -59,12 +69,11 @@ internal data class EventWithBookmarkImpl(
     override val startDate: Instant,
     override val endDate: Instant,
     override val enrollmentUrl: String,
-    override val images: List<EventImage>,
+    override val images: Collection<EventImage>,
     override val isBookmarked: Boolean,
     override val eventStatusType: EventStatusType?,
     override val eventAttendanceMode: EventAttendanceMode?,
-    override val categories: Collection<String>,
-    override val tags: Collection<String>,
+    override val taxonomies: Collection<EventTaxonomy>,
 ) : EventWithBookmark {
 
     constructor(calendarEvent: CalendarEvent, isBookmarked: Boolean) : this(
@@ -80,8 +89,7 @@ internal data class EventWithBookmarkImpl(
         isBookmarked = isBookmarked,
         eventStatusType = calendarEvent.eventStatusType,
         eventAttendanceMode = calendarEvent.eventAttendanceMode,
-        categories = calendarEvent.categories,
-        tags = calendarEvent.tags,
+        taxonomies = calendarEvent.taxonomies,
     )
 }
 

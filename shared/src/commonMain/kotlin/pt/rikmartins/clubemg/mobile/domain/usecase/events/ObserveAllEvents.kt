@@ -23,8 +23,7 @@ class ObserveAllEvents(private val eventsProvider: EventsProvider, private val b
                     images = event.images,
                     eventStatusType = event.eventStatusType,
                     eventAttendanceMode = event.eventAttendanceMode,
-                    categories = event.categories,
-                    tags = event.tags,
+                    taxonomies = event.taxonomies,
                     isBookmarked = favouriteEventsIds.remove(event.id),
                 )
             }

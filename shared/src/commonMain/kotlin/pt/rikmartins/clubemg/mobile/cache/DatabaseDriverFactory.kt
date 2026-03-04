@@ -1,11 +1,12 @@
 package pt.rikmartins.clubemg.mobile.cache
 
 import app.cash.sqldelight.ColumnAdapter
+import app.cash.sqldelight.EnumColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
-import co.touchlab.kermit.Logger
 import kotlinx.datetime.LocalDate
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.TaxonomyType
 import kotlin.time.Instant
 
 interface SqlDriverFactory {
@@ -23,10 +24,14 @@ internal class DatabaseDriverFactory(
             modifiedDateAdapter = instantAdapter,
             startDateAdapter = instantAdapter,
             endDateAdapter = instantAdapter,
-            eventStatusTypeAdapter = eventStatusTypeAdapter,
-            eventAttendanceModeAdapter = eventAttendanceModeAdapter,
-            categoriesAdapter = stringCollectionAdapter,
-            tagsAdapter = stringCollectionAdapter,
+            eventStatusTypeAdapter = EnumColumnAdapter<EventStatusType>(),
+            eventAttendanceModeAdapter = EnumColumnAdapter<EventAttendanceMode>(),
+        ),
+        CalendarEvent_EventTaxonomyAdapter = CalendarEvent_EventTaxonomy.Adapter(
+            eventTaxonomyTypeAdapter = taxonomyTypeAdapter,
+        ),
+        EventTaxonomyAdapter = EventTaxonomy.Adapter(
+            taxonomyTypeAdapter = taxonomyTypeAdapter,
         ),
         DateRangeTimestampAdapter = DateRangeTimestamp.Adapter(
             dateRangeStartAdapter = localDateAdapter,
@@ -49,43 +54,5 @@ internal class DatabaseDriverFactory(
         override fun encode(value: Instant): Long = value.toEpochMilliseconds()
     }
 
-    private val eventStatusTypeAdapter = object : ColumnAdapter<EventStatusType, String> {
-
-        private val logger: Logger = Logger.withTag("eventStatusTypeAdapter")
-
-        override fun decode(databaseValue: String): EventStatusType = try {
-            EventStatusType.valueOf(databaseValue)
-        } catch (_: IllegalArgumentException) {
-            logger.w { "Invalid event status type: $databaseValue, defaulting to ${EventStatusType.Scheduled}" }
-            EventStatusType.Scheduled
-        }
-
-        override fun encode(value: EventStatusType): String = value.name
-    }
-
-    private val eventAttendanceModeAdapter = object : ColumnAdapter<EventAttendanceMode, String> {
-
-        private val logger: Logger = Logger.withTag("eventAttendanceModeAdapter")
-
-        override fun decode(databaseValue: String): EventAttendanceMode = try {
-            EventAttendanceMode.valueOf(databaseValue)
-        } catch (_: IllegalArgumentException) {
-            logger.w { "Invalid event status type: $databaseValue, defaulting to ${EventAttendanceMode.Offline}" }
-            EventAttendanceMode.Offline
-        }
-
-        override fun encode(value: EventAttendanceMode): String = value.name
-    }
-
-    private val stringCollectionAdapter = object : ColumnAdapter<Collection<String>, String> {
-
-        override fun decode(databaseValue: String): Collection<String> =
-            databaseValue.split(STRING_COLLECTION_SEPARATOR)
-
-        override fun encode(value: Collection<String>): String = value.joinToString(STRING_COLLECTION_SEPARATOR)
-    }
-
-    private companion object {
-        const val STRING_COLLECTION_SEPARATOR = "|"
-    }
+    private val taxonomyTypeAdapter = EnumColumnAdapter<TaxonomyType>()
 }
