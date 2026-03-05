@@ -2,7 +2,6 @@ CREATE TABLE EventTaxonomy (
     slug TEXT NOT NULL,
     taxonomyType TEXT NOT NULL,
     name TEXT NOT NULL,
-    url TEXT NOT NULL,
     PRIMARY KEY (slug, taxonomyType) ON CONFLICT IGNORE
 );
 

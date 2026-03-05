@@ -89,7 +89,6 @@ CREATE TABLE EventTaxonomy (
     slug TEXT NOT NULL,
     taxonomyType TEXT AS TaxonomyType NOT NULL,
     name TEXT NOT NULL,
-    url TEXT NOT NULL,
     PRIMARY KEY (slug, taxonomyType) ON CONFLICT IGNORE
 );
 
@@ -130,7 +129,6 @@ SELECT
     EventImage.fileSize AS image_fileSize,
     EventTaxonomy.slug AS taxonomy_slug,
     EventTaxonomy.name AS taxonomy_name,
-    EventTaxonomy.url AS taxonomy_url,
     EventTaxonomy.taxonomyType AS taxonomy_type
 FROM CalendarEvent
 LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
@@ -147,7 +145,6 @@ SELECT
     EventImage.fileSize AS image_fileSize,
     EventTaxonomy.slug AS taxonomy_slug,
     EventTaxonomy.name AS taxonomy_name,
-    EventTaxonomy.url AS taxonomy_url,
     EventTaxonomy.taxonomyType AS taxonomy_type
 FROM CalendarEvent
 LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId

@@ -143,7 +143,6 @@ class DataBaseEventStorage(
                     slug = it.slug,
                     taxonomyType = it.taxonomyType,
                     name = it.name,
-                    url = it.url
                 )
             )
             eventsQueries.addTaxonomyToCalendarEvent(
@@ -265,7 +264,6 @@ class DataBaseEventStorage(
     private data class StorageEventTaxonomy(
         override val name: String,
         override val slug: String,
-        override val url: String,
         override val taxonomyType: TaxonomyType,
     ) : EventTaxonomy
 
@@ -314,14 +312,13 @@ class DataBaseEventStorage(
                 } else null
             }
 
-            val eventTaxonomies = rowList.distinctBy { it.taxonomy_url }
+            val eventTaxonomies = rowList.distinctBy { it.taxonomy_slug }
                 .mapNotNullTo(mutableSetOf()) {
                     with(it) {
-                        if (taxonomy_name != null && taxonomy_slug != null && taxonomy_url != null && taxonomy_type != null)
+                        if (taxonomy_name != null && taxonomy_slug != null && taxonomy_type != null)
                             StorageEventTaxonomy(
                                 name = taxonomy_name,
                                 slug = taxonomy_slug,
-                                url = taxonomy_url,
                                 taxonomyType = taxonomy_type,
                             )
                         else null
@@ -365,14 +362,13 @@ class DataBaseEventStorage(
                 } else null
             }
 
-            val eventTaxonomies = rowList.distinctBy { it.taxonomy_url }
+            val eventTaxonomies = rowList.distinctBy { it.taxonomy_slug }
                 .mapNotNullTo(mutableSetOf()) {
                     with(it) {
-                        if (taxonomy_name != null && taxonomy_slug != null && taxonomy_url != null && taxonomy_type != null)
+                        if (taxonomy_name != null && taxonomy_slug != null && taxonomy_type != null)
                             StorageEventTaxonomy(
                                 name = taxonomy_name,
                                 slug = taxonomy_slug,
-                                url = taxonomy_url,
                                 taxonomyType = taxonomy_type,
                             )
                         else null

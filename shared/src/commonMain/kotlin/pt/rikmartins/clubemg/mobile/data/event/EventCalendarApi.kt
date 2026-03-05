@@ -263,7 +263,6 @@ class EventCalendarApi(
     private data class ApiEventTaxonomy(
         override val name: String,
         override val slug: String,
-        override val url: String,
         override val taxonomyType: TaxonomyType,
     ) : EventTaxonomy
 
@@ -381,10 +380,8 @@ class EventCalendarApi(
 
     @Serializable
     private data class TaxonomyItem(
-        val id: Int,
         val name: String,
         val slug: String,
-        val url: String,
     )
 
     @Serializable
@@ -407,7 +404,7 @@ class EventCalendarApi(
 
     private fun Collection<TaxonomyItem>.toEventTaxonomies(taxonomyType: TaxonomyType): Collection<ApiEventTaxonomy> =
         mapTo(mutableSetOf()) {
-            ApiEventTaxonomy(name = it.name, slug = it.slug, url = it.url, taxonomyType = taxonomyType)
+            ApiEventTaxonomy(name = it.name, slug = it.slug, taxonomyType = taxonomyType)
         }
 
     private class ImageStructureItemBooleanSerializer : KSerializer<ImageStructureItem?> {

@@ -37,7 +37,6 @@ enum class EventAttendanceMode {
 interface EventTaxonomy {
     val name: String
     val slug: String
-    val url: String
     val taxonomyType: TaxonomyType
 }
 
