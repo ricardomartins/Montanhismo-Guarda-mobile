@@ -156,6 +156,7 @@ private fun Bookmark(
                     range = event.range,
                     isBookmarked = false,
                     categories = categories,
+                    eventStatus = event.calendarEvent.eventStatusType,
                     modifier = Modifier.weight(1f),
                 )
                 BookmarkToggleButton(

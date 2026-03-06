@@ -114,6 +114,7 @@ fun EventActionsDialog(
                 range = event.range,
                 isBookmarked = false,
                 categories = categories,
+                eventStatus = event.calendarEvent.eventStatusType,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp)

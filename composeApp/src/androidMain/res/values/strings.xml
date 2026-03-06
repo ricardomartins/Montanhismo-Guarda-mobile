@@ -106,4 +106,9 @@
     <string name="category_social">Social</string>
     <!--endregion Taxonomies-->
 
+    <!--region Detail screen-->
+    <string name="canceled_event_explanation">Cancelada</string>
+    <string name="postponed_event_explanation">Adiada</string>
+    <!--endregion Detail screen-->
+
 </resources>

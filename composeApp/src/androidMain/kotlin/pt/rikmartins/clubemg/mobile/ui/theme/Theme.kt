@@ -16,6 +16,8 @@ data class CustomColorsPalette(
     val monthOnSurface1: Color = Color.Unspecified,
     val monthSurface2: Color = Color.Unspecified,
     val monthOnSurface2: Color = Color.Unspecified,
+    val eventCanceled: Color = Color.Unspecified,
+    val eventPostponed: Color = Color.Unspecified,
 )
 
 val LightCustomColorsPalette = CustomColorsPalette(
@@ -23,6 +25,8 @@ val LightCustomColorsPalette = CustomColorsPalette(
     monthOnSurface1 = MonthOnSurface1,
     monthSurface2 = MonthSurface2,
     monthOnSurface2 = MonthOnSurface2,
+    eventCanceled = EventCanceled,
+    eventPostponed = EventPostponed,
 )
 
 val DarkCustomColorsPalette = CustomColorsPalette(
@@ -30,6 +34,8 @@ val DarkCustomColorsPalette = CustomColorsPalette(
     monthOnSurface1 = MonthOnSurface1Dark,
     monthSurface2 = MonthSurface2Dark,
     monthOnSurface2 = MonthOnSurface2Dark,
+    eventCanceled = EventCanceledDark,
+    eventPostponed = EventPostponedDark,
 )
 
 val LocalCustomColorsPalette = staticCompositionLocalOf { CustomColorsPalette() }
@@ -102,4 +108,3 @@ fun AppTheme(
         )
     }
 }
-

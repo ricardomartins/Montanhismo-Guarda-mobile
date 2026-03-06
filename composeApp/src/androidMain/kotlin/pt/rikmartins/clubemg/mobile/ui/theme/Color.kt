@@ -61,9 +61,15 @@ val MonthOnSurface1 = Color(0xFF313133)
 val MonthSurface2 = Color(0xFFF4F5F7)
 val MonthOnSurface2 = Color(0xFF313133)
 
+val EventCanceled = Color(0xFF99201A)
+val EventPostponed = Color(0xFF825500)
+
 // Dark Theme Colors
 val MonthSurface1Dark = Color(0xFF383636)
 val MonthOnSurface1Dark = Color(0xFFe3e3e6)
 
 val MonthSurface2Dark = Color(0xFF363638)
 val MonthOnSurface2Dark = Color(0xFFe3e3e6)
+
+val EventCanceledDark = Color(0xFFE69490)
+val EventPostponedDark = Color(0xFFFFB951)
