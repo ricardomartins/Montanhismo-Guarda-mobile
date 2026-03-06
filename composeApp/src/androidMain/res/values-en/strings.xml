@@ -86,4 +86,24 @@
     <string name="unbookmark_activity_action_description">Unbookmark this activity</string>
     <string name="undo_action">Undo</string>
     <!--endregion Actions-->
+
+    <!--region Taxonomies-->
+    <string name="category_assembly">Assembly</string>
+    <string name="category_mountain_bike">MTB</string>
+    <string name="category_canoe">Canoeing</string>
+    <string name="category_cycling">Cycling</string>
+    <string name="category_competition">Competition</string>
+    <string name="category_mountain_run">Mountain running</string>
+    <string name="category_climbing">Climbing</string>
+    <string name="category_road">Road cycling</string>
+    <string name="category_training">Training</string>
+    <string name="category_invernal">Winter activities</string>
+    <string name="category_mountain">Mountain</string>
+    <string name="category_multiactivity">Multi-activity</string>
+    <string name="category_sailing">Sailing</string>
+    <string name="category_orienteering">Orienteering</string>
+    <string name="category_pedestrianism">Hiking</string>
+    <string name="category_social">Social</string>
+    <!--endregion Taxonomies-->
+
 </resources>

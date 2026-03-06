@@ -93,6 +93,7 @@ fun EventActionsDialog(
         ) {
             val fallback = painterResource(id = R.drawable.fallback)
             val selectedImage = remember(event) { event.calendarEvent.images.firstOrNull { it.id == null } }
+            val categories = remember(event) { event.calendarEvent.taxonomies.toEventCategories() }
 
             AsyncImage(
                 model = selectedImage?.url,
@@ -112,6 +113,7 @@ fun EventActionsDialog(
                 title = event.title,
                 range = event.range,
                 isBookmarked = false,
+                categories = categories,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp)

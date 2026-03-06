@@ -4,7 +4,6 @@ import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.toJavaLocalDate
@@ -20,15 +20,21 @@ import pt.rikmartins.clubemg.mobile.R
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun EventInfo(title: String?, range: LocalDateRange?, isBookmarked: Boolean, modifier: Modifier = Modifier) {
+fun EventInfo(
+    title: String?,
+    range: LocalDateRange?,
+    isBookmarked: Boolean,
+    categories: List<EventCategory>,
+    modifier: Modifier = Modifier,
+) {
     Row(modifier = modifier) {
         FlowRow(
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (title != null) Text(
                 text = title,
-                modifier = Modifier.padding(end = 8.dp),
+                modifier = Modifier.alignByBaseline(),
                 style = MaterialTheme.typography.bodyLarge,
             )
 
@@ -49,8 +55,22 @@ fun EventInfo(title: String?, range: LocalDateRange?, isBookmarked: Boolean, mod
                 }
                 Text(
                     text = dateText,
-                    modifier = Modifier.padding(end = 8.dp),
+                    modifier = Modifier.alignByBaseline(),
                     style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            categories.forEach {
+                val categoryName = when (it) {
+                    is EventCategory.Match -> stringResource(it.designationRes)
+                    is EventCategory.NoMatch -> it.designation
+                }
+
+                Text(
+                    text = categoryName,
+                    modifier = Modifier.alignByBaseline(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

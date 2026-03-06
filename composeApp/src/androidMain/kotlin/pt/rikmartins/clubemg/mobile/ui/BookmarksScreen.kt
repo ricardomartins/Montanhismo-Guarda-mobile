@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,6 +121,8 @@ private fun Bookmark(
     onSizeChanged: ((IntSize) -> Unit)? = null,
 ) {
 
+    val categories = remember(event) { event.calendarEvent.taxonomies.toEventCategories() }
+
     Card(
         modifier = modifier
             .wrapContentHeight()
@@ -152,7 +155,8 @@ private fun Bookmark(
                     title = event.title,
                     range = event.range,
                     isBookmarked = false,
-                    modifier = Modifier.weight(1f)
+                    categories = categories,
+                    modifier = Modifier.weight(1f),
                 )
                 BookmarkToggleButton(
                     isBookmarked = event.isBookmarked,

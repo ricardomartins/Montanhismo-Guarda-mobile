@@ -87,4 +87,23 @@
     <string name="undo_action">Deshacer</string>
     <!--endregion Actions-->
 
+    <!--region Taxonomies-->
+    <string name="category_assembly">Asamblea</string>
+    <string name="category_mountain_bike">BTT</string>
+    <string name="category_canoe">Piragüismo</string>
+    <string name="category_cycling">Ciclismo</string>
+    <string name="category_competition">Competición</string>
+    <string name="category_mountain_run">Carreras de montaña</string>
+    <string name="category_climbing">Escalada</string>
+    <string name="category_road">Ciclismo de carretera</string>
+    <string name="category_training">Formación</string>
+    <string name="category_invernal">Invernal</string>
+    <string name="category_mountain">Montaña</string>
+    <string name="category_multiactivity">Multiactividad</string>
+    <string name="category_sailing">Náutica</string>
+    <string name="category_orienteering">Orientación</string>
+    <string name="category_pedestrianism">Senderismo</string>
+    <string name="category_social">Social</string>
+    <!--endregion Taxonomies-->
+
 </resources>

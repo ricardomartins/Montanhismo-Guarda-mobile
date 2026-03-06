@@ -87,4 +87,23 @@
     <string name="undo_action">Desfazer</string>
     <!--endregion Actions-->
 
+    <!--region Taxonomies-->
+    <string name="category_assembly">Assembleia</string>
+    <string name="category_mountain_bike">BTT</string>
+    <string name="category_canoe">Canoagem</string>
+    <string name="category_cycling">Ciclismo</string>
+    <string name="category_competition">Competição</string>
+    <string name="category_mountain_run">Corrida de montanha</string>
+    <string name="category_climbing">Escalada</string>
+    <string name="category_road">Ciclismo de estrada</string> <!--TODO: Alterar no site do clube -->
+    <string name="category_training">Formação</string>
+    <string name="category_invernal">Invernal</string>
+    <string name="category_mountain">Montanha</string>
+    <string name="category_multiactivity">Multiatividade</string>
+    <string name="category_sailing">Náutica</string>
+    <string name="category_orienteering">Orientação</string>
+    <string name="category_pedestrianism">Pedestrianismo</string>
+    <string name="category_social">Social</string>
+    <!--endregion Taxonomies-->
+
 </resources>
