@@ -42,18 +42,22 @@ fun EventInfo(
     var dateColor: Color = MaterialTheme.colorScheme.onSurface
 
     when (eventStatus) {
-        null, EventStatusType.Scheduled -> {
+        null -> {
+            dateIconRes = R.drawable.ic_event_unknown
+        }
+
+        EventStatusType.Scheduled -> {
             /* use defaults */
         }
 
         EventStatusType.Rescheduled, EventStatusType.Postponed -> {
-            dateIconRes = R.drawable.ic_event_busy
+            dateIconRes = R.drawable.ic_event_postponed
             explanationTextRes = R.string.postponed_event_explanation
             dateColor = LocalCustomColorsPalette.current.eventPostponed
         }
 
         EventStatusType.Cancelled -> {
-            dateIconRes = R.drawable.ic_event_repeat
+            dateIconRes = R.drawable.ic_event_busy
             explanationTextRes = R.string.canceled_event_explanation
             dateColor = LocalCustomColorsPalette.current.eventCanceled
         }
