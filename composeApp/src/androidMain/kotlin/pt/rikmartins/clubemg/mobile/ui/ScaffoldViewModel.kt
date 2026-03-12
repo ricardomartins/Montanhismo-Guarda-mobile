@@ -3,8 +3,16 @@ package pt.rikmartins.clubemg.mobile.ui
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import com.rickclephas.kmp.observableviewmodel.ViewModel
+import com.rickclephas.kmp.observableviewmodel.stateIn
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
+import kotlin.time.Duration.Companion.milliseconds
 
 data class ScaffoldConfig(
     val topBarTitle: @Composable () -> Unit = {},
@@ -12,12 +20,14 @@ data class ScaffoldConfig(
     val floatingActionButton: @Composable () -> Unit = {},
 )
 
-class ScaffoldViewModel : ViewModel() {
+class ScaffoldViewModel(observeRefreshing: ObserveRefreshing) : ViewModel() {
     private val _scaffoldConfig = MutableStateFlow(ScaffoldConfig())
     val scaffoldState = _scaffoldConfig.asStateFlow()
 
-    private val _showProgressIndicator = MutableStateFlow(false)
-    val showProgressIndicator = _showProgressIndicator.asStateFlow()
+    @OptIn(FlowPreview::class)
+    val showProgressIndicator = observeRefreshing().map { it.dateRanges.isNotEmpty() }.distinctUntilChanged()
+        .debounce(200.milliseconds)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun updateScaffold(
         title: (@Composable () -> Unit),
@@ -29,9 +39,5 @@ class ScaffoldViewModel : ViewModel() {
             topBarActions = actions,
             floatingActionButton = fab,
         )
-    }
-
-    fun showProgress(show: Boolean) {
-        _showProgressIndicator.value = show
     }
 }
