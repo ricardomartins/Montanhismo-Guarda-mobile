@@ -42,7 +42,6 @@ fun CalendarScreen(
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
     val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
-    val refreshingCalendar by viewModel.calendarRefreshing.collectAsStateWithLifecycle()
     val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
@@ -108,8 +107,6 @@ fun CalendarScreen(
             }
         },
     )
-
-    LaunchedEffect(refreshingCalendar) { scaffoldViewModel.showProgress(refreshingCalendar) }
 
     LazyColumn(
         state = listState,
