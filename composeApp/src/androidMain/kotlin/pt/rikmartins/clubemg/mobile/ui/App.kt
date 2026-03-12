@@ -51,10 +51,10 @@ sealed interface AppDestination {
 
     @Serializable
     sealed class Main(
-        @StringRes val labelResId: Int,
-        @DrawableRes val iconResId: Int,
-        @DrawableRes val iconSelectedResId: Int
-    ) {
+        @field:StringRes val labelResId: Int,
+        @field:DrawableRes val iconResId: Int,
+        @field:DrawableRes val iconSelectedResId: Int
+    ) : AppDestination {
 
         @Serializable
         object Calendar : Main(
