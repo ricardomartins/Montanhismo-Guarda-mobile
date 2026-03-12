@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -32,6 +32,8 @@ import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.thisWeeksFriday
 import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
 import pt.rikmartins.clubemg.mobile.thisWeeksSunday
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
+import pt.rikmartins.clubemg.mobile.ui.WeekOfEvents
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
 import java.time.format.DateTimeFormatter

@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.calendar
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
@@ -27,8 +27,11 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
+import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
+import pt.rikmartins.clubemg.mobile.ui.CalendarViewModel
+import pt.rikmartins.clubemg.mobile.ui.detail.EventActionsDialog
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,11 +119,13 @@ fun CalendarScreen(
                 weekOfEvents = weekOfEvents,
                 today = today,
                 onEventClick = { viewModel.setSelectedEvent(it) },
-                setImageSize = { ofEvent, withSize -> viewModel.updateImageSize(
-                    ofEvent = ofEvent,
-                    withWidth = withSize.width,
-                    andHeight = withSize.height,
-                ) },
+                setImageSize = { ofEvent, withSize ->
+                    viewModel.updateImageSize(
+                        ofEvent = ofEvent,
+                        withWidth = withSize.width,
+                        andHeight = withSize.height,
+                    )
+                },
             )
             HorizontalDivider()
         }

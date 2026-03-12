@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile
+package pt.rikmartins.clubemg.mobile.ui
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -40,10 +40,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
-import pt.rikmartins.clubemg.mobile.ui.BookmarksScreen
-import pt.rikmartins.clubemg.mobile.ui.EventDetailScreen
-import pt.rikmartins.clubemg.mobile.ui.CalendarScreen
-import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
+import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.settings.SettingsScreen
+import pt.rikmartins.clubemg.mobile.ui.bookmarks.BookmarksScreen
+import pt.rikmartins.clubemg.mobile.ui.detail.EventDetailScreen
+import pt.rikmartins.clubemg.mobile.ui.calendar.CalendarScreen
 import pt.rikmartins.clubemg.mobile.ui.theme.AppTheme
 
 sealed interface AppDestination {

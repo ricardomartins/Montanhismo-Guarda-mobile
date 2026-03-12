@@ -12,6 +12,7 @@ import pt.rikmartins.clubemg.mobile.datastore.createDataStore
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.notification.AndroidNotifier
 import pt.rikmartins.clubemg.mobile.notification.EventSyncWorker
+import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
 
 internal val androidModule = module {
     workerOf(::EventSyncWorker)

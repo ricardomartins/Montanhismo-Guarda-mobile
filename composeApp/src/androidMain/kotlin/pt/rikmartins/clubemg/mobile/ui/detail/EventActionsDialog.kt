@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.detail
 
 import android.Manifest
 import android.app.Activity
@@ -42,6 +42,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.BookmarkToggleButton
+import pt.rikmartins.clubemg.mobile.ui.LargeEventInfo
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
 fun EventActionsDialog(
@@ -93,7 +96,6 @@ fun EventActionsDialog(
         ) {
             val fallback = painterResource(id = R.drawable.fallback)
             val selectedImage = remember(event) { event.calendarEvent.images.firstOrNull { it.id == null } }
-            val categories = remember(event) { event.calendarEvent.taxonomies.toEventCategories() }
 
             AsyncImage(
                 model = selectedImage?.url,
@@ -109,11 +111,11 @@ fun EventActionsDialog(
                 fallback = fallback,
             )
 
-            EventInfo(
+            LargeEventInfo(
                 title = event.title,
                 range = event.range,
                 isBookmarked = false,
-                categories = categories,
+                categories = event.calendarEvent.taxonomies,
                 eventStatus = event.calendarEvent.eventStatusType,
                 modifier = Modifier
                     .fillMaxWidth()

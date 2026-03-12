@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile
+package pt.rikmartins.clubemg.mobile.ui
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
