@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.bookmarks
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +38,12 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
+import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
+import pt.rikmartins.clubemg.mobile.ui.BookmarkToggleButton
+import pt.rikmartins.clubemg.mobile.ui.BookmarksViewModel
+import pt.rikmartins.clubemg.mobile.ui.LargeEventInfo
+import pt.rikmartins.clubemg.mobile.ui.detail.EventActionsDialog
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
 fun BookmarksScreen(
@@ -121,7 +125,6 @@ private fun Bookmark(
     onSizeChanged: ((IntSize) -> Unit)? = null,
 ) {
 
-    val categories = remember(event) { event.calendarEvent.taxonomies.toEventCategories() }
 
     Card(
         modifier = modifier
@@ -151,11 +154,12 @@ private fun Bookmark(
                     .fillMaxHeight()
                     .padding(start = 12.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             ) {
-                EventInfo(
+                LargeEventInfo(
                     title = event.title,
                     range = event.range,
                     isBookmarked = false,
-                    categories = categories,
+                    categories = event.calendarEvent.taxonomies,
+                    eventStatus = event.calendarEvent.eventStatusType,
                     modifier = Modifier.weight(1f),
                 )
                 BookmarkToggleButton(
@@ -167,4 +171,3 @@ private fun Bookmark(
         }
     }
 }
-

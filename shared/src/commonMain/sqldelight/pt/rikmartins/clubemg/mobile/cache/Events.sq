@@ -19,17 +19,6 @@ CREATE TABLE CalendarEvent (
     eventAttendanceMode TEXT AS EventAttendanceMode
 );
 
-selectEventsInRange:
-SELECT *
-FROM CalendarEvent
-WHERE endDate >= :rangeStart
-AND startDate <= :rangeEnd;
-
-selectEventsById:
-SELECT *
-FROM CalendarEvent
-WHERE CalendarEvent.id IN ?;
-
 replaceEvent:
 INSERT OR REPLACE INTO CalendarEvent (id, creationDate, modifiedDate, title, url, startDate, endDate, enrollmentUrl, eventStatusType, eventAttendanceMode)
 VALUES (:id, :creationDate, :modifiedDate, :title, :url, :startDate, :endDate, :enrollmentUrl, :eventStatusType, :eventAttendanceMode);
@@ -43,10 +32,6 @@ updateEventAttendanceMode:
 UPDATE CalendarEvent
 SET eventAttendanceMode = :eventAttendanceMode
 WHERE id == :id;
-
-deleteEvent:
-DELETE FROM CalendarEvent
-WHERE id == ?;
 
 deleteEvents:
 DELETE FROM CalendarEvent
@@ -65,23 +50,13 @@ CREATE TABLE EventImage (
     UNIQUE (calendarEventId, id) ON CONFLICT REPLACE
 );
 
-getImagesOfEvent:
-SELECT *
-FROM EventImage
-WHERE calendarEventId = ?;
-
-getImagesOfEvents:
-SELECT *
-FROM EventImage
-WHERE calendarEventId IN ?;
-
 replaceEventImage:
 INSERT OR REPLACE INTO EventImage
 VALUES ?;
 
-deleteImagesOfEvents:
+deleteImagesOfEvent:
 DELETE FROM EventImage
-WHERE calendarEventId IN ?;
+WHERE calendarEventId = ?;
 --endregion EventImage
 
 --region EventTaxonomy
@@ -91,10 +66,6 @@ CREATE TABLE EventTaxonomy (
     name TEXT NOT NULL,
     PRIMARY KEY (slug, taxonomyType) ON CONFLICT IGNORE
 );
-
-getAllEventTaxonomies:
-SELECT *
-FROM EventTaxonomy;
 
 addEventTaxonomy:
 INSERT INTO EventTaxonomy
@@ -151,4 +122,22 @@ LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
 LEFT JOIN CalendarEvent_EventTaxonomy ON CalendarEvent.id = CalendarEvent_EventTaxonomy.calendarEventId
 LEFT JOIN EventTaxonomy ON CalendarEvent_EventTaxonomy.eventTaxonomySlug = EventTaxonomy.slug
 WHERE CalendarEvent.id IN ?;
+
+selectEventsInRangeWithDetails:
+SELECT
+    CalendarEvent.*,
+    EventImage.id AS image_id,
+    EventImage.url AS image_url,
+    EventImage.width AS image_width,
+    EventImage.height AS image_height,
+    EventImage.fileSize AS image_fileSize,
+    EventTaxonomy.slug AS taxonomy_slug,
+    EventTaxonomy.name AS taxonomy_name,
+    EventTaxonomy.taxonomyType AS taxonomy_type
+FROM CalendarEvent
+LEFT JOIN EventImage ON CalendarEvent.id = EventImage.calendarEventId
+LEFT JOIN CalendarEvent_EventTaxonomy ON CalendarEvent.id = CalendarEvent_EventTaxonomy.calendarEventId
+LEFT JOIN EventTaxonomy ON CalendarEvent_EventTaxonomy.eventTaxonomySlug = EventTaxonomy.slug
+WHERE endDate >= :rangeStart
+AND startDate <= :rangeEnd;
 --endregion Multiple table

@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.detail
 
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -23,6 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.DetailViewModel
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
 fun EventDetailScreen(eventId: String, navigateBack: () -> Unit) {
