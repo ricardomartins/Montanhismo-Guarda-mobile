@@ -16,16 +16,17 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import pt.rikmartins.clubemg.mobile.cache.AppDatabase
+import pt.rikmartins.clubemg.mobile.cache.CalendarEvent_EventTaxonomy
+import pt.rikmartins.clubemg.mobile.cache.EventTaxonomy as CacheEventTaxonomy
 import pt.rikmartins.clubemg.mobile.cache.EventsQueries
-import pt.rikmartins.clubemg.mobile.cache.CalendarEvent as CacheCalendarEvent
 import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
-import pt.rikmartins.clubemg.mobile.cache.SelectAllWithImages
-import pt.rikmartins.clubemg.mobile.cache.SelectEventsByIdWithImages
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventTaxonomy
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.TaxonomyType
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
 import kotlin.collections.map
@@ -42,8 +43,9 @@ class DataBaseEventStorage(
     private val rangesQueries = database.rangesQueries
     private val singleValuesQueries = database.singleValuesQueries
 
-    override val events: Flow<List<CalendarEvent>> = eventsQueries.selectAllWithImages().asFlow()
-        .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEventAll() }
+    override val events: Flow<List<CalendarEvent>> = eventsQueries
+        .selectAllWithDetails(mapper = ::GenericCacheEventWithDetails).asFlow().mapToList(defaultDispatcher)
+        .map { rows -> rows.toCalendarEvent() }
 
     override suspend fun getTimeZone(): TimeZone = withContext(defaultDispatcher) {
         TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
@@ -75,7 +77,9 @@ class DataBaseEventStorage(
         timestamp: Instant,
     ) = withContext(defaultDispatcher) {
         val timeZone =
-            TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
+            TimeZone.of(
+                singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE
+            )
 
         eventsQueries.transaction {
             eventsQueries.saveEvents(events, dateRange, timeZone)
@@ -88,37 +92,85 @@ class DataBaseEventStorage(
         dateRange: LocalDateRange,
         timeZone: TimeZone,
     ) {
-        val existingEvents = selectEventsInRange(
+        val existingEvents = selectEventsInRangeWithDetails(
             rangeStart = dateRange.start.atStartOfDayIn(timeZone),
             rangeEnd = dateRange.endInclusive.atEndOfDayIn(timeZone),
-        ).executeAsList()
+            mapper = ::GenericCacheEventWithDetails
+        ).executeAsList().toCalendarEvent()
 
         val eventsToDelete = existingEvents.toMutableList()
-        val eventsToUpsert = events.toMutableList()
+        val eventsToUpsert = events.mapTo(mutableListOf<Pair<CalendarEvent, CalendarEvent?>>()) { it to null }
 
         existingEvents.forEach { existingEvent ->
             val correspondingNewEvent = events.firstOrNull { it.id == existingEvent.id }
 
             if (correspondingNewEvent != null) {
                 eventsToDelete.remove(existingEvent)
+                eventsToUpsert.removeAll { it.first.id == correspondingNewEvent.id }
+                eventsToUpsert.add(correspondingNewEvent to existingEvent)
+            }
+        }
+        deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
+        eventsToUpsert.forEach { (calendarEvent, existingEvent) -> replaceSingleEvent(calendarEvent, existingEvent) }
+    }
 
-                if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate) {
-                    eventsToUpsert.remove(correspondingNewEvent)
-                }
+    private fun EventsQueries.replaceSingleEvent(newEvent: CalendarEvent, existingEvent: CalendarEvent?) {
+        val doUpdateEvent: Boolean
+        val doUpdateTaxonomies: Boolean // Necessary to populate DB after migration
+        val doUpdateStatusType: Boolean // Necessary because lists of events don't have this data
+        val doUpdateAttendanceMode: Boolean // Necessary because lists of events don't have this data
+        if (existingEvent == null || newEvent.modifiedDate > existingEvent.modifiedDate) {
+            doUpdateEvent = true
+            doUpdateTaxonomies = true
+            doUpdateStatusType = false
+            doUpdateAttendanceMode = false
+        } else {
+            doUpdateEvent = false
+            doUpdateTaxonomies = newEvent.taxonomies.size != existingEvent.taxonomies.size
+            doUpdateStatusType = newEvent.eventStatusType != null && existingEvent.eventStatusType == null
+            doUpdateAttendanceMode = newEvent.eventAttendanceMode != null && existingEvent.eventAttendanceMode == null
+        }
+
+        if (doUpdateEvent) {
+            replaceEvent(
+                id = newEvent.id,
+                creationDate = newEvent.creationDate,
+                modifiedDate = newEvent.modifiedDate,
+                title = newEvent.title,
+                url = newEvent.url,
+                startDate = newEvent.startDate,
+                endDate = newEvent.endDate,
+                enrollmentUrl = newEvent.enrollmentUrl,
+                eventStatusType = newEvent.eventStatusType,
+                eventAttendanceMode = newEvent.eventAttendanceMode,
+            )
+
+            if (existingEvent != null) deleteImagesOfEvent(existingEvent.id)
+            newEvent.images.forEach { replaceEventImage(it.asCacheEventImage(newEvent.id)) }
+        }
+
+        if (doUpdateTaxonomies) {
+            if (existingEvent != null) removeAllTaxonomiesFromCalendarEvent(existingEvent.id)
+            newEvent.taxonomies.forEach {
+                addEventTaxonomy(
+                    CacheEventTaxonomy(
+                        slug = it.slug,
+                        taxonomyType = it.taxonomyType,
+                        name = it.name,
+                    )
+                )
+                addTaxonomyToCalendarEvent(
+                    CalendarEvent_EventTaxonomy(
+                        calendarEventId = newEvent.id,
+                        eventTaxonomySlug = it.slug,
+                        eventTaxonomyType = it.taxonomyType,
+                    )
+                )
             }
         }
 
-        deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
-
-        deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-        eventsToUpsert.forEach { calendarEvent -> replaceSingleEvent(calendarEvent) }
-    }
-
-    private fun EventsQueries.replaceSingleEvent(event: CalendarEvent) {
-        replaceEvent(event.id, event.creationDate, event.modifiedDate, event.title, event.url, event.startDate, event.endDate, event.enrollmentUrl)
-        if (event.eventStatusType != null) updateEventStatusType(event.eventStatusType, event.id)
-        if (event.eventAttendanceMode != null) updateEventAttendanceMode(event.eventAttendanceMode, event.id)
-        event.images.forEach { replaceEventImage(it.asCacheEventImage(event.id)) }
+        if (doUpdateStatusType) updateEventStatusType(newEvent.eventStatusType, newEvent.id)
+        if (doUpdateAttendanceMode) updateEventAttendanceMode(newEvent.eventAttendanceMode, newEvent.id)
     }
 
     private fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
@@ -175,9 +227,13 @@ class DataBaseEventStorage(
         withContext(defaultDispatcher) {
             buildSet {
                 eventsQueries.transaction {
-                    val existingEvents = eventsQueries.selectEventsById(calendarEvents.map { it.id }).executeAsList()
+                    val existingEvents = eventsQueries.selectEventsByIdWithDetails(
+                        id = calendarEvents.map { it.id },
+                        mapper = ::GenericCacheEventWithDetails
+                    ).executeAsList().toCalendarEvent()
 
-                    val eventsToUpsert = calendarEvents.toMutableList()
+                    val eventsToUpsert = calendarEvents
+                        .mapTo(mutableListOf<Pair<CalendarEvent, CalendarEvent?>>()) { it to null }
 
                     existingEvents.forEach { existingEvent ->
                         val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
@@ -185,37 +241,23 @@ class DataBaseEventStorage(
                         if (correspondingNewEvent != null) {
                             add(existingEvent diffWith correspondingNewEvent)
 
-                            if (correspondingNewEvent.modifiedDate <= existingEvent.modifiedDate)
-                                eventsToUpsert.remove(correspondingNewEvent)
+                            eventsToUpsert.removeAll { it.first.id == correspondingNewEvent.id }
+                            eventsToUpsert.add(correspondingNewEvent to existingEvent)
                         }
                     }
 
-                    eventsQueries.deleteImagesOfEvents(eventsToUpsert.map { calendarEvent -> calendarEvent.id })
-                    eventsToUpsert.forEach { calendarEvent -> eventsQueries.replaceSingleEvent(calendarEvent) }
+                    eventsToUpsert.forEach { (calendarEvent, existingEvent) ->
+                        eventsQueries.replaceSingleEvent(calendarEvent, existingEvent)
+                    }
                 }
             }
         }
 
     override fun observeEventsById(ids: Collection<String>): Flow<Collection<CalendarEvent>> =
-        eventsQueries.selectEventsByIdWithImages(ids).asFlow().mapToList(defaultDispatcher)
-            .map { rows -> rows.toCalendarEventById() }
+        eventsQueries.selectEventsByIdWithDetails(id = ids, mapper = ::GenericCacheEventWithDetails).asFlow()
+            .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEvent() }
 
-    private infix fun CacheCalendarEvent.diffWith(other: CalendarEvent) = EventDiff(
-        StorageCalendarEvent(
-            id = id,
-            creationDate = creationDate,
-            modifiedDate = modifiedDate,
-            title = title,
-            url = url,
-            startDate = startDate,
-            endDate = endDate,
-            enrollmentUrl = enrollmentUrl,
-            images = emptyList(),
-            eventStatusType = eventStatusType,
-            eventAttendanceMode = eventAttendanceMode,
-        ),
-        newEvent = other
-    )
+    private infix fun CalendarEvent.diffWith(other: CalendarEvent) = EventDiff(oldEvent = this, newEvent = other)
 
     private data class StorageEventImage(
         val calendarEventId: String,
@@ -226,6 +268,12 @@ class DataBaseEventStorage(
         override val fileSize: Int,
     ) : EventImage
 
+    private data class StorageEventTaxonomy(
+        override val name: String,
+        override val slug: String,
+        override val taxonomyType: TaxonomyType,
+    ) : EventTaxonomy
+
     private data class StorageCalendarEvent(
         override val id: String,
         override val creationDate: Instant,
@@ -235,9 +283,10 @@ class DataBaseEventStorage(
         override val startDate: Instant,
         override val endDate: Instant,
         override val enrollmentUrl: String,
-        override val images: List<StorageEventImage>,
+        override val images: Collection<EventImage>,
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
+        override val taxonomies: Collection<EventTaxonomy>,
     ) : CalendarEvent
 
     private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
@@ -249,9 +298,60 @@ class DataBaseEventStorage(
         fileSize = fileSize.toLong(),
     )
 
-    private fun List<SelectAllWithImages>.toCalendarEventAll(): List<StorageCalendarEvent> = this.groupBy { it.id }
+    private data class GenericCacheEventWithDetails(
+        val id: String,
+        val creationDate: Instant,
+        val modifiedDate: Instant,
+        val title: String,
+        val url: String,
+        val startDate: Instant,
+        val endDate: Instant,
+        val enrollmentUrl: String,
+        val eventStatusType: EventStatusType?,
+        val eventAttendanceMode: EventAttendanceMode?,
+        val imageId: String?,
+        val imageUrl: String?,
+        val imageWidth: Long?,
+        val imageHeight: Long?,
+        val imageFileSize: Long?,
+        val taxonomySlug: String?,
+        val taxonomyName: String?,
+        val taxonomyType: TaxonomyType?,
+    )
+
+    private fun List<GenericCacheEventWithDetails>.toCalendarEvent(): List<StorageCalendarEvent> = groupBy { it.id }
         .map { (_, rowList) ->
             val calendarEvent = rowList.first()
+
+            val eventImages = rowList.distinctBy { it.imageId }.mapNotNullTo(mutableSetOf()) { eventImage ->
+                if (eventImage.imageUrl != null &&
+                    eventImage.imageWidth != null &&
+                    eventImage.imageHeight != null &&
+                    eventImage.imageFileSize != null
+                ) {
+                    StorageEventImage(
+                        calendarEventId = calendarEvent.id,
+                        id = eventImage.imageId,
+                        url = eventImage.imageUrl,
+                        width = eventImage.imageWidth.toInt(),
+                        height = eventImage.imageHeight.toInt(),
+                        fileSize = eventImage.imageFileSize.toInt(),
+                    )
+                } else null
+            }
+
+            val eventTaxonomies = rowList.distinctBy { it.taxonomySlug }
+                .mapNotNullTo(mutableSetOf()) {
+                    with(it) {
+                        if (taxonomyName != null && taxonomySlug != null && taxonomyType != null)
+                            StorageEventTaxonomy(
+                                name = taxonomyName,
+                                slug = taxonomySlug,
+                                taxonomyType = taxonomyType,
+                            )
+                        else null
+                    }
+                }
 
             StorageCalendarEvent(
                 id = calendarEvent.id,
@@ -262,58 +362,10 @@ class DataBaseEventStorage(
                 startDate = calendarEvent.startDate,
                 endDate = calendarEvent.endDate,
                 enrollmentUrl = calendarEvent.enrollmentUrl,
-                images = rowList.mapNotNull { eventImage ->
-                    if (eventImage.url_ != null &&
-                        eventImage.width != null &&
-                        eventImage.height != null &&
-                        eventImage.fileSize != null
-                    ) {
-                        StorageEventImage(
-                            calendarEventId = calendarEvent.id,
-                            id = eventImage.id_,
-                            url = eventImage.url_,
-                            width = eventImage.width.toInt(),
-                            height = eventImage.height.toInt(),
-                            fileSize = eventImage.fileSize.toInt(),
-                        )
-                    } else null
-                },
+                images = eventImages,
                 eventStatusType = calendarEvent.eventStatusType,
                 eventAttendanceMode = calendarEvent.eventAttendanceMode,
-            )
-        }
-
-    private fun List<SelectEventsByIdWithImages>.toCalendarEventById(): List<StorageCalendarEvent> = this.groupBy { it.id }
-        .map { (_, rowList) ->
-            val calendarEvent = rowList.first()
-
-            StorageCalendarEvent(
-                id = calendarEvent.id,
-                creationDate = calendarEvent.creationDate,
-                modifiedDate = calendarEvent.modifiedDate,
-                title = calendarEvent.title,
-                url = calendarEvent.url,
-                startDate = calendarEvent.startDate,
-                endDate = calendarEvent.endDate,
-                enrollmentUrl = calendarEvent.enrollmentUrl,
-                images = rowList.mapNotNull { eventImage ->
-                    if (eventImage.url_ != null &&
-                        eventImage.width != null &&
-                        eventImage.height != null &&
-                        eventImage.fileSize != null
-                    ) {
-                        StorageEventImage(
-                            calendarEventId = calendarEvent.id,
-                            id = eventImage.id_,
-                            url = eventImage.url_,
-                            width = eventImage.width.toInt(),
-                            height = eventImage.height.toInt(),
-                            fileSize = eventImage.fileSize.toInt(),
-                        )
-                    } else null
-                },
-                eventStatusType = calendarEvent.eventStatusType,
-                eventAttendanceMode = calendarEvent.eventAttendanceMode,
+                taxonomies = eventTaxonomies,
             )
         }
 

@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile
+package pt.rikmartins.clubemg.mobile.ui.settings
 
 import android.content.Intent
 import androidx.compose.foundation.clickable
@@ -16,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
+import pt.rikmartins.clubemg.mobile.BuildConfig
+import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
 import kotlin.jvm.java
 
 @Composable

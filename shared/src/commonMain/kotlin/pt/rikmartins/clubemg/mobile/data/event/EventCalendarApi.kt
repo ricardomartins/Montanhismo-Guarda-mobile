@@ -50,7 +50,9 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventImage
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventStatusType
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventTaxonomy
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.TaxonomyType
 import kotlin.collections.map
 import kotlin.collections.plus
 import kotlin.time.Instant
@@ -119,7 +121,7 @@ class EventCalendarApi(
                 flow {
                     pairs.filter { (newest, oldest) ->
                         newest.startOfRange != null && newest.endOfRange != null &&
-                                (oldest == null || oldest.startOfRange == null || oldest.endOfRange == null)
+                                (oldest?.startOfRange == null || oldest.endOfRange == null)
                     }
                         .map { (newest, _) ->
                             emit(
@@ -145,7 +147,6 @@ class EventCalendarApi(
         val startOfRange: LocalDate? = null,
         val endOfRange: LocalDate? = null,
     )
-
 
     override suspend fun getEventsById(eventsIds: Collection<String>): List<CalendarEvent> = supervisorScope {
         _refreshingDetail.update { it.copy(singularEventIds = it.singularEventIds + eventsIds) }
@@ -192,13 +193,14 @@ class EventCalendarApi(
             endDate = endDate.asLocalDateTime().toInstant(timeZone),
             enrollmentUrl = website,
             images = image?.run {
-                buildList {
+                buildSet {
                     add(this@run.asEventImage(null))
                     sizes.forEach { (key, value) -> add(value.asEventImage(key)) }
                 }
             }.orEmpty(),
             eventStatusType = linkedData?.eventStatus?.asEventStatusType(),
             eventAttendanceMode = linkedData?.eventAttendanceMode?.asEventAttendanceMode(),
+            taxonomies = categories.toEventTaxonomies(TaxonomyType.CATEGORY) + tags.toEventTaxonomies(TaxonomyType.TAG),
         )
     }
 
@@ -244,9 +246,10 @@ class EventCalendarApi(
         override val startDate: Instant,
         override val endDate: Instant,
         override val enrollmentUrl: String,
-        override val images: List<ApiEventImage>,
+        override val images: Collection<ApiEventImage>,
         override val eventStatusType: EventStatusType?,
         override val eventAttendanceMode: EventAttendanceMode?,
+        override val taxonomies: Collection<ApiEventTaxonomy>,
     ) : CalendarEvent
 
     private data class ApiEventImage(
@@ -256,6 +259,12 @@ class EventCalendarApi(
         override val height: Int,
         override val fileSize: Int,
     ) : EventImage
+
+    private data class ApiEventTaxonomy(
+        override val name: String,
+        override val slug: String,
+        override val taxonomyType: TaxonomyType,
+    ) : EventTaxonomy
 
     private data class ApiRefreshState(
         override val singularEventIds: List<String> = emptyList(),
@@ -334,6 +343,8 @@ class EventCalendarApi(
         @Serializable(with = ImageStructureItemBooleanSerializer::class)
         val image: ImageStructureItem?,
         @SerialName("json_ld") val linkedData: LinkedData? = null,
+        val categories: List<TaxonomyItem>, // The event categories
+        val tags: List<TaxonomyItem>, // The event tags
     )
 
     private interface ImageStructure {
@@ -368,6 +379,12 @@ class EventCalendarApi(
     )
 
     @Serializable
+    private data class TaxonomyItem(
+        val name: String,
+        val slug: String,
+    )
+
+    @Serializable
     private data class EventResponse(
         val events: List<EventItem>,
         val total: Int, // Total events in the response
@@ -384,6 +401,11 @@ class EventCalendarApi(
         height = height,
         fileSize = fileSize,
     )
+
+    private fun Collection<TaxonomyItem>.toEventTaxonomies(taxonomyType: TaxonomyType): Collection<ApiEventTaxonomy> =
+        mapTo(mutableSetOf()) {
+            ApiEventTaxonomy(name = it.name, slug = it.slug, taxonomyType = taxonomyType)
+        }
 
     private class ImageStructureItemBooleanSerializer : KSerializer<ImageStructureItem?> {
         private val delegateSerializer = ImageStructureItem.serializer()

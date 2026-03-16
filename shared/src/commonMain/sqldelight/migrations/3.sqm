@@ -1,0 +1,15 @@
+CREATE TABLE EventTaxonomy (
+    slug TEXT NOT NULL,
+    taxonomyType TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (slug, taxonomyType) ON CONFLICT IGNORE
+);
+
+CREATE TABLE CalendarEvent_EventTaxonomy (
+    calendarEventId TEXT NOT NULL,
+    eventTaxonomySlug TEXT NOT NULL,
+    eventTaxonomyType TEXT NOT NULL,
+    PRIMARY KEY (calendarEventId, eventTaxonomySlug, eventTaxonomyType) ON CONFLICT IGNORE,
+    FOREIGN KEY (calendarEventId) REFERENCES CalendarEvent(id) ON DELETE CASCADE,
+    FOREIGN KEY (eventTaxonomySlug, eventTaxonomyType) REFERENCES EventTaxonomy(slug, taxonomyType) ON DELETE CASCADE
+);

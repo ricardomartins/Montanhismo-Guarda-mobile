@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.detail
 
 import android.Manifest
 import android.app.Activity
@@ -42,6 +42,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import pt.rikmartins.clubemg.mobile.R
+import pt.rikmartins.clubemg.mobile.ui.BookmarkToggleButton
+import pt.rikmartins.clubemg.mobile.ui.LargeEventInfo
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
 fun EventActionsDialog(
@@ -108,10 +111,12 @@ fun EventActionsDialog(
                 fallback = fallback,
             )
 
-            EventInfo(
+            LargeEventInfo(
                 title = event.title,
                 range = event.range,
                 isBookmarked = false,
+                categories = event.calendarEvent.taxonomies,
+                eventStatus = event.calendarEvent.eventStatusType,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 12.dp)

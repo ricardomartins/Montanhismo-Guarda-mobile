@@ -7,7 +7,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
@@ -37,7 +36,6 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 import pt.rikmartins.clubemg.mobile.ui.WeekUtils.getMondaysInRange
 import kotlin.math.abs
 import kotlin.math.ln
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class, FlowPreview::class)
@@ -75,13 +73,7 @@ class CalendarViewModel(
         .filter { it != LocalDateRange.EMPTY }
         .distinctUntilChanged { old, new -> old.start == new.start && old.endInclusive == new.endInclusive }
 
-    private val refreshing = observeRefreshing()
-
-    val calendarRefreshing = refreshing.map { it.dateRanges.isNotEmpty() }.distinctUntilChanged()
-        .debounce(200.milliseconds)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
-
-    val refreshingEventIds = refreshing.map { it.singularEventIds }.distinctUntilChanged()
+    val refreshingEventIds = observeRefreshing().map { it.singularEventIds }.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val calendarTimeZoneFlow = flow { emit(getCalendarTimeZone()) }

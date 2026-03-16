@@ -1,4 +1,4 @@
-package pt.rikmartins.clubemg.mobile.ui
+package pt.rikmartins.clubemg.mobile.ui.bookmarks
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +38,12 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import pt.rikmartins.clubemg.mobile.R
-import pt.rikmartins.clubemg.mobile.ScaffoldViewModel
+import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
+import pt.rikmartins.clubemg.mobile.ui.BookmarkToggleButton
+import pt.rikmartins.clubemg.mobile.ui.BookmarksViewModel
+import pt.rikmartins.clubemg.mobile.ui.LargeEventInfo
+import pt.rikmartins.clubemg.mobile.ui.detail.EventActionsDialog
+import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
 fun BookmarksScreen(
@@ -120,6 +125,7 @@ private fun Bookmark(
     onSizeChanged: ((IntSize) -> Unit)? = null,
 ) {
 
+
     Card(
         modifier = modifier
             .wrapContentHeight()
@@ -148,11 +154,13 @@ private fun Bookmark(
                     .fillMaxHeight()
                     .padding(start = 12.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             ) {
-                EventInfo(
+                LargeEventInfo(
                     title = event.title,
                     range = event.range,
                     isBookmarked = false,
-                    modifier = Modifier.weight(1f)
+                    categories = event.calendarEvent.taxonomies,
+                    eventStatus = event.calendarEvent.eventStatusType,
+                    modifier = Modifier.weight(1f),
                 )
                 BookmarkToggleButton(
                     isBookmarked = event.isBookmarked,
@@ -163,4 +171,3 @@ private fun Bookmark(
         }
     }
 }
-
