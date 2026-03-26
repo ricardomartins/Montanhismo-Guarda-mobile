@@ -30,7 +30,6 @@ import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
 import pt.rikmartins.clubemg.mobile.thisWeeksMonday
 import pt.rikmartins.clubemg.mobile.ui.CalendarViewModel
-import pt.rikmartins.clubemg.mobile.ui.detail.EventActionsDialog
 import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,8 +40,6 @@ fun CalendarScreen(
 ) {
     val viewModel: CalendarViewModel = koinViewModel()
     val model by viewModel.model.collectAsStateWithLifecycle()
-    val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
-    val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
 
@@ -115,7 +112,7 @@ fun CalendarScreen(
             Week(
                 weekOfEvents = weekOfEvents,
                 today = today,
-                onEventClick = { viewModel.setSelectedEvent(it) },
+                onEventClick = { navigateToDetails(it) },
                 setImageSize = { ofEvent, withSize ->
                     viewModel.updateImageSize(
                         ofEvent = ofEvent,
@@ -127,15 +124,4 @@ fun CalendarScreen(
             HorizontalDivider()
         }
     }
-
-    val selectedEventVal = selectedEvent
-    if (selectedEventVal != null) EventActionsDialog(
-        event = selectedEventVal,
-        refreshingEventIds = refreshingEventIds,
-        navigateToDetails = {
-            navigateToDetails(it)
-            viewModel.unsetSelectedEvent()
-        },
-        setBookmarkTo = { viewModel.setBookmarkOfEventTo(selectedEventVal, it) },
-    ) { viewModel.unsetSelectedEvent() }
 }

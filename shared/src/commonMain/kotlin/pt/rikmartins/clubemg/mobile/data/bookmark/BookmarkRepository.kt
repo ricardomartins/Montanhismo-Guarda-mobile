@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 
@@ -16,7 +17,7 @@ internal class BookmarkRepository(
     private val dataStore: DataStore<Preferences>,
     private val logger: Logger = Logger.withTag(BookmarkRepository::class.simpleName!!)
 ) : SynchronizeFavouriteEvents.BookmarkProvider, SetBookmarkOfEventId.BookmarkProvider,
-    ObserveAllEvents.BookmarkProvider, ObserveAllFavouriteEvents.BookmarkProvider {
+    ObserveAllEvents.BookmarkProvider, ObserveAllFavouriteEvents.BookmarkProvider, ObserveEvent.BookmarkProvider {
 
 
     override suspend fun getAllBookmarkedEventsIds(): Collection<String> =

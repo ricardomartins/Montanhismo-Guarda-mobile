@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Guarda Mountaineering</string>
 
-    <string name="back">Back</string>
+    <string name="back_action">Back</string>
 
     <!--region Calendar Screen-->
     <string name="title_calendar">Activity Calendar</string>
