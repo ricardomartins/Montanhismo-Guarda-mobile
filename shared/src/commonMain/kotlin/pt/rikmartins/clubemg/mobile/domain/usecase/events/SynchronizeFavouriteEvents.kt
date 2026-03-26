@@ -1,6 +1,8 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.UseCase
 import kotlin.time.Clock
 
@@ -9,8 +11,9 @@ class SynchronizeFavouriteEvents(
     private val eventsProvider: EventsProvider,
     private val notifier: Notifier,
     private val clock: Clock = Clock.System,
-    private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
-) : UseCase.Action() {
+    private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!),
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+) : UseCase.Action(dispatcher) {
 
     override suspend fun execute() {
         logger.v { "Synchronizing favourite events" }
