@@ -1,5 +1,7 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapMerge
@@ -9,7 +11,8 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
 class ObserveAllFavouriteEvents(
     private val bookmarkProvider: BookmarkProvider,
     private val eventsProvider: EventsProvider,
-) : WatchCase.Supplier<Collection<EventWithBookmark>>() {
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+) : WatchCase.Supplier<Collection<EventWithBookmark>>(dispatcher) {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun execute(): Flow<Collection<EventWithBookmark>> = bookmarkProvider.favouriteEventsIds
