@@ -129,7 +129,7 @@ class CalendarViewModel(
                 }
                 .take(1)
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Model(emptyList(), null))
+    }.stateIn(viewModelScope, SharingStarted.Lazily, Model(emptyList(), null))
 
     val selectedEvent = MutableStateFlow<UiEventWithBookmark?>(null)
 
