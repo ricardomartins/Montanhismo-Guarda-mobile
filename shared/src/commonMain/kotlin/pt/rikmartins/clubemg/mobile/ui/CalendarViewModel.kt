@@ -28,10 +28,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 import pt.rikmartins.clubemg.mobile.ui.WeekUtils.getMondaysInRange
 import kotlin.math.abs
@@ -44,10 +41,7 @@ class CalendarViewModel(
     observeCalendarCurrentDay: ObserveCalendarCurrentDay,
     observeAllEvents: ObserveAllEvents,
     private val getCalendarTimeZone: GetCalendarTimeZone,
-    observeRefreshing: ObserveRefreshing,
     private val refreshPeriod: RefreshPeriod,
-    private val setBookmarkOfEventId: SetBookmarkOfEventId,
-    private val refreshEvent: RefreshEvent,
 ) : ViewModel() {
 
     private val visibleDates = MutableStateFlow<LocalDateRange?>(null)
@@ -72,9 +66,6 @@ class CalendarViewModel(
     }
         .filter { it != LocalDateRange.EMPTY }
         .distinctUntilChanged { old, new -> old.start == new.start && old.endInclusive == new.endInclusive }
-
-    val refreshingEventIds = observeRefreshing().map { it.singularEventIds }.distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val calendarTimeZoneFlow = flow { emit(getCalendarTimeZone()) }
 
@@ -142,15 +133,6 @@ class CalendarViewModel(
 
     val selectedEvent = MutableStateFlow<UiEventWithBookmark?>(null)
 
-    fun setSelectedEvent(event: UiEventWithBookmark) {
-        viewModelScope.launch { refreshEvent(event.id) }
-        selectedEvent.value = event
-    }
-
-    fun unsetSelectedEvent() {
-        selectedEvent.value = null
-    }
-
     fun notifyViewedDates(dateRange: LocalDateRange) {
         visibleDates.value = dateRange
     }
@@ -162,12 +144,6 @@ class CalendarViewModel(
                     it.start.minus(1, DateTimeUnit.MONTH)..it.endInclusive.plus(1, DateTimeUnit.MONTH)
                 )
             }
-        }
-    }
-
-    fun setBookmarkOfEventTo(event: UiEventWithBookmark, isBookmarked: Boolean) {
-        viewModelScope.launch {
-            setBookmarkOfEventId(event.id, isBookmarked)
         }
     }
 

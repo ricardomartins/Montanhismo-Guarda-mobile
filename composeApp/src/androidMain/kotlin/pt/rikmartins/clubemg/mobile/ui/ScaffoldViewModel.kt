@@ -17,6 +17,7 @@ import kotlin.time.Duration.Companion.milliseconds
 data class ScaffoldConfig(
     val topBarTitle: @Composable () -> Unit = {},
     val topBarActions: @Composable RowScope.() -> Unit = {},
+    val navigationIcon: @Composable () -> Unit = {},
     val floatingActionButton: @Composable () -> Unit = {},
 )
 
@@ -32,11 +33,13 @@ class ScaffoldViewModel(observeRefreshing: ObserveRefreshing) : ViewModel() {
     fun updateScaffold(
         title: (@Composable () -> Unit),
         actions: (@Composable RowScope.() -> Unit) = {},
+        navigationIcon: (@Composable () -> Unit) = {},
         fab: (@Composable () -> Unit) = {},
     ) {
         _scaffoldConfig.value = ScaffoldConfig(
             topBarTitle = title,
             topBarActions = actions,
+            navigationIcon = navigationIcon,
             floatingActionButton = fab,
         )
     }

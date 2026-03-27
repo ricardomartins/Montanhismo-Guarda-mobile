@@ -26,6 +26,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshState
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 import pt.rikmartins.clubemg.mobile.nextDay
@@ -43,7 +44,8 @@ class EventRepository(
     private val logger: Logger = Logger.withTag(SynchronizeFavouriteEvents::class.simpleName!!)
 ) : ObserveAllEvents.EventsProvider, ObserveCalendarCurrentDay.Gateway, GetCalendarTimeZone.Gateway,
     ObserveRefreshing.Gateway, RefreshPeriod.Gateway, ConsiderRefreshingPeriod.EventProvider,
-    SynchronizeFavouriteEvents.EventsProvider, RefreshEvent.EventProvider, ObserveAllFavouriteEvents.EventsProvider {
+    SynchronizeFavouriteEvents.EventsProvider, RefreshEvent.EventProvider, ObserveAllFavouriteEvents.EventsProvider,
+    ObserveEvent.EventsProvider {
 
     override suspend fun considerRefreshingPeriod(period: LocalDateRange) = refreshStaleEvents(period)
 

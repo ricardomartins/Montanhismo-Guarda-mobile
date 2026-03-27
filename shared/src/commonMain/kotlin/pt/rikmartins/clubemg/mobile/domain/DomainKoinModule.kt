@@ -6,6 +6,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeri
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveCalendarCurrentDay
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
@@ -23,4 +24,5 @@ internal val domainModule = module {
     single { SetBookmarkOfEventId(get()) }
     single { RefreshEvent(get()) }
     single { ObserveAllFavouriteEvents(get(), get()) }
+    single { ObserveEvent(get(), get()) }
 }

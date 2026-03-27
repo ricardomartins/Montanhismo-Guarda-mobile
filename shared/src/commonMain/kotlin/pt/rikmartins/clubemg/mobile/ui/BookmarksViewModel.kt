@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -18,8 +17,6 @@ import kotlinx.datetime.TimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventWithBookmark
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.GetCalendarTimeZone
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveRefreshing
-import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.toLocalDate
 
@@ -27,8 +24,6 @@ class BookmarksViewModel(
     observeAllFavouriteEvents: ObserveAllFavouriteEvents,
     private val setBookmarkOfEventId: SetBookmarkOfEventId,
     private val getCalendarTimeZone: GetCalendarTimeZone,
-    private val refreshEvent: RefreshEvent,
-    observeRefreshing: ObserveRefreshing,
 ) : ViewModel() {
 
     private val eventImageOutputSize = MutableStateFlow<ImageSize?>(null)
@@ -62,20 +57,6 @@ class BookmarksViewModel(
     }
         .map { events -> events.sortedBy { it.calendarEvent.startDate } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val refreshing = observeRefreshing()
-
-    val refreshingEventIds = refreshing.map { it.singularEventIds }.distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun setSelectedEvent(event: UiEventWithBookmark) {
-        viewModelScope.launch { refreshEvent(event.id) }
-        selectedEvent.value = event
-    }
-
-    fun unsetSelectedEvent() {
-        selectedEvent.value = null
-    }
 
     fun unbookmarkEvent(eventId: String) {
         viewModelScope.launch { setBookmarkOfEventId(eventId, false) }
