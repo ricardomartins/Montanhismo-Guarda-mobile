@@ -58,8 +58,8 @@ android {
         applicationId = "pt.rikmartins.clubemg.mobile"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.4.0"
+        versionCode = 10
+        versionName = "0.5.0"
     }
     packaging {
         resources {
