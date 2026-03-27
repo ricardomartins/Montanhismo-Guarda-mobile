@@ -18,7 +18,7 @@ import pt.rikmartins.clubemg.mobile.R
 fun BookmarkToggleButton(
     isBookmarked: Boolean,
     setBookmark: (Boolean) -> Unit,
-    modifier: Modifier = Modifier.Companion,
+    modifier: Modifier = Modifier,
 ) {
     val buttonShape: Shape
     @DrawableRes val buttonIconRes: Int

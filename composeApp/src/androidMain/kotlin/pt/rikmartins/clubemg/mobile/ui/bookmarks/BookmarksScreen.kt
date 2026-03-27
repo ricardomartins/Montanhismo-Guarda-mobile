@@ -42,7 +42,6 @@ import pt.rikmartins.clubemg.mobile.ui.ScaffoldViewModel
 import pt.rikmartins.clubemg.mobile.ui.BookmarkToggleButton
 import pt.rikmartins.clubemg.mobile.ui.BookmarksViewModel
 import pt.rikmartins.clubemg.mobile.ui.LargeEventInfo
-import pt.rikmartins.clubemg.mobile.ui.detail.EventActionsDialog
 import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 
 @Composable
@@ -52,9 +51,7 @@ fun BookmarksScreen(
     snackbarHostState: SnackbarHostState,
 ) {
     val viewModel: BookmarksViewModel = koinViewModel()
-    val selectedEvent by viewModel.selectedEvent.collectAsStateWithLifecycle()
     val bookmarkedEvents by viewModel.model.collectAsStateWithLifecycle()
-    val refreshingEventIds by viewModel.refreshingEventIds.collectAsStateWithLifecycle()
 
     val scope = rememberCoroutineScope()
 
@@ -92,26 +89,12 @@ fun BookmarksScreen(
                         if (result == SnackbarResult.ActionPerformed) viewModel.bookmarkEvent(event.id)
                     }
                 },
-                onEventClick = { viewModel.setSelectedEvent(it) },
+                onEventClick = { navigateToDetails(it) },
                 onSizeChanged = { viewModel.updateImageSize(it.width, it.height) },
                 modifier = Modifier.animateItem()
             )
         }
     }
-
-    val selectedEventVal = selectedEvent
-    if (selectedEventVal != null) EventActionsDialog(
-        event = selectedEventVal,
-        refreshingEventIds = refreshingEventIds,
-        navigateToDetails = {
-            navigateToDetails(it)
-            viewModel.unsetSelectedEvent()
-        },
-        setBookmarkTo = {
-            if (it) viewModel.bookmarkEvent(selectedEventVal.id)
-            else viewModel.unbookmarkEvent(selectedEventVal.id)
-        },
-    ) { viewModel.unsetSelectedEvent() }
 }
 
 private const val IMAGE_ASPECT_RATIO = 4758f / 6892f // Usual size for a poster

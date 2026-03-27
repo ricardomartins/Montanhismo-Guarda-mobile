@@ -1,10 +1,16 @@
 package pt.rikmartins.clubemg.mobile.domain.usecase.events
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import pt.rikmartins.clubemg.mobile.domain.usecase.base.WatchCase
 
-class ObserveAllEvents(private val eventsProvider: EventsProvider, private val bookmarkProvider: BookmarkProvider) : WatchCase.Supplier<List<EventWithBookmark>>() {
+class ObserveAllEvents(
+    private val eventsProvider: EventsProvider,
+    private val bookmarkProvider: BookmarkProvider,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+) : WatchCase.Supplier<List<EventWithBookmark>>(dispatcher) {
 
     override fun execute(): Flow<List<EventWithBookmark>> =
         combine(eventsProvider.events, bookmarkProvider.favouriteEventsIds) { events, favouriteEventsIds ->

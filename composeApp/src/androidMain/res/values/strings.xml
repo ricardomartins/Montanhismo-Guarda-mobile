@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Montanhismo Guarda</string>
 
-    <string name="back">Voltar</string>
+    <string name="back_action">Voltar</string>
 
     <!--region Calendar Screen-->
     <string name="title_calendar">Calendário de Atividades</string>

@@ -12,7 +12,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.bookmark.BookmarkRepository
@@ -27,6 +26,7 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SetBookmarkOfEventId
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ConsiderRefreshingPeriod
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveAllFavouriteEvents
+import pt.rikmartins.clubemg.mobile.domain.usecase.events.ObserveEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.RefreshEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.SynchronizeFavouriteEvents
 
@@ -64,6 +64,7 @@ internal val dataModule = module {
         SynchronizeFavouriteEvents.EventsProvider::class,
         RefreshEvent.EventProvider::class,
         ObserveAllFavouriteEvents.EventsProvider::class,
+        ObserveEvent.EventsProvider::class,
     )
 
     single { BookmarkRepository(get()) } binds arrayOf(
@@ -71,5 +72,6 @@ internal val dataModule = module {
         SetBookmarkOfEventId.BookmarkProvider::class,
         ObserveAllEvents.BookmarkProvider::class,
         ObserveAllFavouriteEvents.BookmarkProvider::class,
+        ObserveEvent.BookmarkProvider::class,
     )
 }
