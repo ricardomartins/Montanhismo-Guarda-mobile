@@ -149,7 +149,7 @@ fun MainScreen(navigateToDetails: (event: UiEventWithBookmark) -> Unit) {
                         selected = selected,
                         onClick = {
                             navController.navigate(screen) {
-                                popUpTo(navController.graph.findStartDestination().id) {
+                                popUpTo(navController.graph.id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
