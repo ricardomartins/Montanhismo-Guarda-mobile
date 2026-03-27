@@ -3,7 +3,6 @@ package pt.rikmartins.clubemg.mobile.ui.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,13 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.Month
-import kotlinx.datetime.toJavaLocalDate
 import pt.rikmartins.clubemg.mobile.thisWeeksFriday
 import pt.rikmartins.clubemg.mobile.thisWeeksSaturday
 import pt.rikmartins.clubemg.mobile.thisWeeksSunday
@@ -36,11 +32,9 @@ import pt.rikmartins.clubemg.mobile.ui.UiEventWithBookmark
 import pt.rikmartins.clubemg.mobile.ui.WeekOfEvents
 import pt.rikmartins.clubemg.mobile.ui.theme.CustomColorsPalette
 import pt.rikmartins.clubemg.mobile.ui.theme.LocalCustomColorsPalette
-import java.time.format.DateTimeFormatter
 
 internal const val COMPACT_DAY_WEIGHT = 2f
 internal const val FULL_DAY_WEIGHT = 5f
-internal const val WEEK_TOTAL_WEIGHT = COMPACT_DAY_WEIGHT + FULL_DAY_WEIGHT + FULL_DAY_WEIGHT
 
 private const val WEEK_HEIGHT = 256
 private val WEEK_HEIGHT_IN_DP = WEEK_HEIGHT.dp
@@ -64,8 +58,6 @@ internal fun Week(
         val monday = weekOfEvents.monday
         val saturday = monday.thisWeeksSaturday()
         val sunday = monday.thisWeeksSunday()
-
-        if (sunday.day <= 7) MonthLabelRow(monday, sunday)
 
         WeekRow(
             monday = monday,
@@ -105,42 +97,6 @@ private fun WeekRow(
                 .weight(FULL_DAY_WEIGHT)
                 .fillMaxHeight(),
             onLabelSizeChanged = onDayLabelSizeChanged,
-        )
-    }
-}
-
-@Composable
-private fun MonthLabelRow(monday: LocalDate, sunday: LocalDate) {
-    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-        val getSurfaceAndOnSurfaceOfDate = LocalCustomColorsPalette.current::getSurfaceAndOnSurfaceOfDate
-        val (previousMonthSurface, _) = getSurfaceAndOnSurfaceOfDate(monday)
-        val (currentMonthSurface, _) = getSurfaceAndOnSurfaceOfDate(sunday)
-
-        val monthLabelWeight = when (sunday.day) {
-            1 -> FULL_DAY_WEIGHT
-            2, 3, 4, 5, 6 -> FULL_DAY_WEIGHT * 2f
-            else -> WEEK_TOTAL_WEIGHT
-        }
-
-        if (monthLabelWeight != WEEK_TOTAL_WEIGHT) Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(WEEK_TOTAL_WEIGHT - monthLabelWeight)
-                .background(previousMonthSurface)
-        )
-
-        Text(
-            text = sunday.toJavaLocalDate().format(
-                DateTimeFormatter.ofPattern(
-                    if (sunday.month == Month.JANUARY) "MMMM y" else "MMMM"
-                )
-            ),
-            modifier = Modifier
-                .weight(monthLabelWeight)
-                .background(currentMonthSurface),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
@@ -231,7 +187,7 @@ private fun DayBox(
     }
 }
 
-private fun CustomColorsPalette.getSurfaceAndOnSurfaceOfDate(
+internal fun CustomColorsPalette.getSurfaceAndOnSurfaceOfDate(
     localDate: LocalDate,
 ): Pair<Color, Color> {
     val monthColorSet = localDate.month.ordinal % 2

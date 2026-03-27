@@ -1,5 +1,7 @@
 package pt.rikmartins.clubemg.mobile.ui
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -29,15 +31,53 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
+import pt.rikmartins.clubemg.mobile.R
 import pt.rikmartins.clubemg.mobile.ui.bookmarks.BookmarksScreen
 import pt.rikmartins.clubemg.mobile.ui.calendar.CalendarScreen
 import pt.rikmartins.clubemg.mobile.ui.settings.SettingsScreen
+
+@Serializable
+private sealed class MainDestination(
+    @field:StringRes val labelResId: Int,
+    @field:DrawableRes val iconResId: Int,
+    @field:DrawableRes val iconSelectedResId: Int
+) {
+
+    @Serializable
+    object Calendar : MainDestination(
+        labelResId = R.string.calendar_navigation,
+        iconResId = R.drawable.ic_bottom_nav_calendar,
+        iconSelectedResId = R.drawable.ic_bottom_nav_calendar_selected
+    )
+
+    @Serializable
+    object Bookmarks : MainDestination(
+        labelResId = R.string.bookmarks_navigation,
+        iconResId = R.drawable.ic_bottom_nav_bookmarks,
+        iconSelectedResId = R.drawable.ic_bottom_nav_bookmarks_selected
+    )
+
+    @Serializable
+    object Settings : MainDestination(
+        labelResId = R.string.settings_navigation,
+        iconResId = R.drawable.ic_bottom_nav_settings,
+        iconSelectedResId = R.drawable.ic_bottom_nav_settings_selected
+    )
+
+    companion object {
+        val destinations = listOf(
+            Calendar,
+            Bookmarks,
+            Settings,
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,13 +128,13 @@ fun MainScreen(navigateToDetails: (event: UiEventWithBookmark) -> Unit) {
 
                 val selectedMain = currentDestination?.run {
                     when {
-                        hasRoute<AppDestination.Main.Calendar>() -> AppDestination.Main.Calendar
-                        hasRoute<AppDestination.Main.Bookmarks>() -> AppDestination.Main.Bookmarks
-                        hasRoute<AppDestination.Main.Settings>() -> AppDestination.Main.Settings
+                        hasRoute<MainDestination.Calendar>() -> MainDestination.Calendar
+                        hasRoute<MainDestination.Bookmarks>() -> MainDestination.Bookmarks
+                        hasRoute<MainDestination.Settings>() -> MainDestination.Settings
                         else -> null
                     }
                 }
-                AppDestination.Main.destinations.forEach { screen ->
+                MainDestination.destinations.forEach { screen ->
                     val selected = selectedMain == screen
                     NavigationBarItem(
                         icon = {
@@ -109,7 +149,7 @@ fun MainScreen(navigateToDetails: (event: UiEventWithBookmark) -> Unit) {
                         selected = selected,
                         onClick = {
                             navController.navigate(screen) {
-                                popUpTo(navController.graph.findStartDestination().id) {
+                                popUpTo(navController.graph.id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -123,29 +163,22 @@ fun MainScreen(navigateToDetails: (event: UiEventWithBookmark) -> Unit) {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Main.Calendar,
+            startDestination = MainDestination.Calendar,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            composable<AppDestination.Main.Calendar> {
-                CalendarScreen(
-                    scaffoldViewModel = scaffoldViewModel,
-                    navigateToDetails = navigateToDetails,
-                )
+            composable<MainDestination.Calendar> {
+                CalendarScreen(scaffoldViewModel = scaffoldViewModel, navigateToDetails = navigateToDetails)
             }
-            composable<AppDestination.Main.Bookmarks> {
+            composable<MainDestination.Bookmarks> {
                 BookmarksScreen(
                     scaffoldViewModel = scaffoldViewModel,
                     navigateToDetails = navigateToDetails,
                     snackbarHostState = snackbarHostState
                 )
             }
-            composable<AppDestination.Main.Settings> {
-                SettingsScreen(
-                    scaffoldViewModel = scaffoldViewModel,
-                )
-            }
+            composable<MainDestination.Settings> { SettingsScreen(scaffoldViewModel = scaffoldViewModel) }
         }
     }
 }
