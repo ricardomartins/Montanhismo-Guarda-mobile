@@ -21,6 +21,10 @@
     <string name="settings_about_section_version_title">Versión de la aplicación</string>
     <string name="settings_about_section_open_source_licenses_title">Licencias de Código Abierto</string>
     <string name="settings_about_section_open_source_licenses_subtitle">Detalles de las licencias de código abierto</string>
+    <string name="settings_about_section_privacy_policy_title">Política de Privacidad</string>
+    <string name="settings_about_section_privacy_policy_subtitle">Léalo en nuestro sitio web</string>
+
+    <string name="app_privacy_policy_url">https://ricardomartins.github.io/Montanhismo-Guarda-mobile/es/privacy_policy.html</string>
     <!--endregion Settings Screen-->
 
     <!--region Notification-->
