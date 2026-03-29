@@ -19,4 +19,4 @@ Esta página se utiliza para informar a los usuarios sobre nuestras políticas d
 5. **Cambios en esta Política de Privacidad:** Es posible que actualicemos nuestra Política de Privacidad de vez en cuando. Por lo tanto, te aconsejamos que revises esta página periódicamente para ver si hay algún cambio. Te notificaremos de cualquier cambio publicando la nueva Política de Privacidad en esta página.
 6. **Contactos:** Si tienes alguna pregunta o sugerencia sobre nuestra Política de Privacidad, no dudes en contactarnos a través de:
     - Correo electrónico: clube@montanhismo-guarda.pt
-    - Sitio web: https://www.montanhismo-guarda.pt/portal/
+    - Sitio web: https://ricardomartins.github.io/Montanhismo-Guarda-mobile/

@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import kotlin.jvm.java
 @Composable
 fun SettingsScreen(scaffoldViewModel: ScaffoldViewModel) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(Unit) {
         scaffoldViewModel.updateScaffold(
@@ -44,6 +46,15 @@ fun SettingsScreen(scaffoldViewModel: ScaffoldViewModel) {
                 SettingsItem(
                     title = stringResource(R.string.settings_about_section_version_title),
                     subtitle = BuildConfig.VERSION_NAME
+                )
+
+                // Privacy Policy Item
+                val privacyPolicyUrl = stringResource(R.string.app_privacy_policy_url)
+
+                SettingsItem(
+                    title = stringResource(R.string.settings_about_section_privacy_policy_title),
+                    subtitle = stringResource(R.string.settings_about_section_privacy_policy_subtitle),
+                    onClick = { uriHandler.openUri(privacyPolicyUrl) }
                 )
 
                 // Open Source Licenses Item
