@@ -1,6 +1,4 @@
-[Read this in English…](Montanhismo-Guarda-mobile/docs/en/privacy_policy.md)
-
-[Leia isto em Português…](Montanhismo-Guarda-mobile/docs/pt/privacy_policy.md)
+[Read this in English…](../en/privacy_policy.html) | [Leia isto em Português…](../pt/privacy_policy.html)
 
 # Política de Privacidad - Clube de Montanhismo da Guarda (Mobile)
 
