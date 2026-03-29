@@ -21,6 +21,10 @@
     <string name="settings_about_section_version_title">App Version</string>
     <string name="settings_about_section_open_source_licenses_title">Open Source Licenses</string>
     <string name="settings_about_section_open_source_licenses_subtitle">License details for open source software</string>
+    <string name="settings_about_section_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_about_section_privacy_policy_subtitle">Read it on our website</string>
+
+    <string name="app_privacy_policy_url">https://ricardomartins.github.io/Montanhismo-Guarda-mobile/en/privacy_policy.html</string>
     <!--endregion Settings Screen-->
 
     <!--region Notification-->
