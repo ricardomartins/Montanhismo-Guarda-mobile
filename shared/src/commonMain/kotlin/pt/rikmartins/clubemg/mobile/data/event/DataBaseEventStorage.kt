@@ -1,5 +1,7 @@
 package pt.rikmartins.clubemg.mobile.data.event
 
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -57,13 +59,15 @@ class DataBaseEventStorage(
         dateRange: LocalDateRange,
     ): List<EventRepository.DateRangeTimestamp> = withContext(defaultDispatcher) {
         rangesDao.getDateRangeTimestampsThatIntersectRange(
-            rangeStart = dateRange.start.toEpochDays().toLong(),
-            rangeEnd = dateRange.endInclusive.toEpochDays().toLong()
+            rangeStart = dateRange.start.toEpochDays(),
+            rangeEnd = dateRange.endInclusive.toEpochDays()
         )
             .also { logger.d { "Found ${it.size} date range timestamps between ${dateRange.start} and ${dateRange.endInclusive}" } }
             .map { dateRangeTimestamp ->
                 EventRepository.DateRangeTimestamp(
-                    dateRange = LocalDate.fromEpochDays(dateRangeTimestamp.dateRangeStart.toInt())..LocalDate.fromEpochDays(dateRangeTimestamp.dateRangeEnd.toInt()),
+                    dateRange = LocalDate.fromEpochDays(dateRangeTimestamp.dateRangeStart.toInt())..LocalDate.fromEpochDays(
+                        dateRangeTimestamp.dateRangeEnd.toInt()
+                    ),
                     timestamp = Instant.fromEpochMilliseconds(dateRangeTimestamp.timestamp),
                 )
             }
@@ -74,17 +78,16 @@ class DataBaseEventStorage(
         dateRange: LocalDateRange,
         timestamp: Instant,
     ) = withContext(defaultDispatcher) {
-        val timeZone =
-            TimeZone.of(
-                singleValuesDao.getTextValue(TIMEZONE_KEY)?.value ?: DEFAULT_API_TIMEZONE
-            )
+        val timeZone = TimeZone.of(
+            singleValuesDao.getTextValue(TIMEZONE_KEY)?.value ?: DEFAULT_API_TIMEZONE
+        )
 
-        // Room doesn't have useWriterConnection in KMP yet directly exposed like this, wait it does with 2.8.x
-        // Actually, we can just call the DAO methods inside a suspend block if it's annotated with @Transaction
-        // Let's assume Room KMP is used directly. Wait, if we didn't add @Transaction, we can just do them sequentially or create a suspend method in DAO.
-        // For simplicity, let's just do it directly. Room doesn't strictly require transaction for multiple inserts, though it's faster.
-        saveEvents(events, dateRange, timeZone)
-        saveDateRangeWithTimestamp(dateRange, timestamp)
+        database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                saveEvents(events, dateRange, timeZone)
+                saveDateRangeWithTimestamp(dateRange, timestamp)
+            }
+        }
     }
 
     private suspend fun saveEvents(
@@ -176,8 +179,8 @@ class DataBaseEventStorage(
 
     private suspend fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
         rangesDao.getDateRangeTimestampsThatIntersectRange(
-            rangeStart = dateRange.start.toEpochDays().toLong(),
-            rangeEnd = dateRange.endInclusive.toEpochDays().toLong(),
+            rangeStart = dateRange.start.toEpochDays(),
+            rangeEnd = dateRange.endInclusive.toEpochDays(),
         ).forEach { existing ->
             val existingStart = LocalDate.fromEpochDays(existing.dateRangeStart.toInt())
             val existingEnd = LocalDate.fromEpochDays(existing.dateRangeEnd.toInt())
@@ -188,13 +191,13 @@ class DataBaseEventStorage(
                 startsBeforeNew && endsAfterNew -> {
                     rangesDao.updateDateRangeTimestampWithId(
                         id = existing.id,
-                        rangeStart = existingStart.toEpochDays().toLong(),
-                        rangeEnd = dateRange.start.previousDay().toEpochDays().toLong(),
+                        rangeStart = existingStart.toEpochDays(),
+                        rangeEnd = dateRange.start.previousDay().toEpochDays(),
                     )
                     rangesDao.insertDateRangeTimestamp(
                         RoomDateRangeTimestamp(
-                            dateRangeStart = dateRange.endInclusive.nextDay().toEpochDays().toLong(),
-                            dateRangeEnd = existingEnd.toEpochDays().toLong(),
+                            dateRangeStart = dateRange.endInclusive.nextDay().toEpochDays(),
+                            dateRangeEnd = existingEnd.toEpochDays(),
                             timestamp = existing.timestamp,
                         )
                     )
@@ -203,15 +206,15 @@ class DataBaseEventStorage(
                 startsBeforeNew ->
                     rangesDao.updateDateRangeTimestampWithId(
                         id = existing.id,
-                        rangeStart = existingStart.toEpochDays().toLong(),
-                        rangeEnd = dateRange.start.previousDay().toEpochDays().toLong(),
+                        rangeStart = existingStart.toEpochDays(),
+                        rangeEnd = dateRange.start.previousDay().toEpochDays(),
                     )
 
                 endsAfterNew ->
                     rangesDao.updateDateRangeTimestampWithId(
                         id = existing.id,
-                        rangeStart = dateRange.endInclusive.nextDay().toEpochDays().toLong(),
-                        rangeEnd = existingEnd.toEpochDays().toLong(),
+                        rangeStart = dateRange.endInclusive.nextDay().toEpochDays(),
+                        rangeEnd = existingEnd.toEpochDays(),
                     )
 
                 else -> rangesDao.deleteDateRangeTimestampWithId(existing.id)
@@ -219,8 +222,8 @@ class DataBaseEventStorage(
         }
         rangesDao.insertDateRangeTimestamp(
             RoomDateRangeTimestamp(
-                dateRangeStart = dateRange.start.toEpochDays().toLong(),
-                dateRangeEnd = dateRange.endInclusive.toEpochDays().toLong(),
+                dateRangeStart = dateRange.start.toEpochDays(),
+                dateRangeEnd = dateRange.endInclusive.toEpochDays(),
                 timestamp = timestamp.toEpochMilliseconds()
             )
         )
