@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import pt.rikmartins.clubemg.mobile.data.bookmark.BookmarkRepository
+import pt.rikmartins.clubemg.mobile.data.cache.getRoomDatabase
 import pt.rikmartins.clubemg.mobile.data.event.EventCalendarApi
 import pt.rikmartins.clubemg.mobile.data.event.EventRepository
 import pt.rikmartins.clubemg.mobile.data.event.DataBaseEventStorage
@@ -50,6 +51,8 @@ internal val dataModule = module {
             }
         }
     }
+
+    single { getRoomDatabase(get()) }
 
     single<EventRepository.EventSource> { EventCalendarApi(get()) }
     single<EventRepository.EventStorage> { DataBaseEventStorage(get()) }

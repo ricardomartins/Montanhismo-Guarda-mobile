@@ -1,7 +1,7 @@
 package pt.rikmartins.clubemg.mobile.data.event
 
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
+import androidx.room.immediateTransaction
+import androidx.room.useWriterConnection
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -15,11 +15,13 @@ import kotlinx.datetime.LocalDateRange
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
-import pt.rikmartins.clubemg.mobile.cache.AppDatabase
-import pt.rikmartins.clubemg.mobile.cache.CalendarEvent_EventTaxonomy
-import pt.rikmartins.clubemg.mobile.cache.EventTaxonomy as CacheEventTaxonomy
-import pt.rikmartins.clubemg.mobile.cache.EventsQueries
-import pt.rikmartins.clubemg.mobile.cache.EventImage as CacheEventImage
+import pt.rikmartins.clubemg.mobile.data.cache.AppDatabase
+import pt.rikmartins.clubemg.mobile.data.cache.RoomCalendarEventEventTaxonomy
+import pt.rikmartins.clubemg.mobile.data.cache.RoomEventTaxonomy
+import pt.rikmartins.clubemg.mobile.data.cache.RoomEventImage
+import pt.rikmartins.clubemg.mobile.data.cache.RoomCalendarEvent
+import pt.rikmartins.clubemg.mobile.data.cache.RoomDateRangeTimestamp
+import pt.rikmartins.clubemg.mobile.data.cache.RoomEventWithDetails
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.CalendarEvent
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventAttendanceMode
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventDiff
@@ -29,26 +31,24 @@ import pt.rikmartins.clubemg.mobile.domain.usecase.events.EventTaxonomy
 import pt.rikmartins.clubemg.mobile.domain.usecase.events.TaxonomyType
 import pt.rikmartins.clubemg.mobile.nextDay
 import pt.rikmartins.clubemg.mobile.previousDay
-import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 class DataBaseEventStorage(
-    database: AppDatabase,
+    private val database: AppDatabase,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val logger: Logger = Logger.withTag(DataBaseEventStorage::class.simpleName!!)
 ) : EventRepository.EventStorage {
 
-    private val eventsQueries = database.eventsQueries
-    private val rangesQueries = database.rangesQueries
-    private val singleValuesQueries = database.singleValuesQueries
+    private val eventsDao = database.eventsDao()
+    private val rangesDao = database.rangesDao()
+    private val singleValuesDao = database.singleValuesDao()
 
-    override val events: Flow<List<CalendarEvent>> = eventsQueries
-        .selectAllWithDetails(mapper = ::GenericCacheEventWithDetails).asFlow().mapToList(defaultDispatcher)
-        .map { rows -> rows.toCalendarEvent() }
+    override val events: Flow<List<CalendarEvent>> = eventsDao
+        .selectAllWithDetails().map { rows -> rows.toCalendarEvent() }
 
     override suspend fun getTimeZone(): TimeZone = withContext(defaultDispatcher) {
-        TimeZone.of(singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE)
+        TimeZone.of(singleValuesDao.getTextValue(TIMEZONE_KEY)?.value ?: DEFAULT_API_TIMEZONE)
     }
 
     override suspend fun setTimeZone(timezone: TimeZone): Unit = withContext(defaultDispatcher) {
@@ -58,15 +58,17 @@ class DataBaseEventStorage(
     override suspend fun getDateRangeTimestampsOf(
         dateRange: LocalDateRange,
     ): List<EventRepository.DateRangeTimestamp> = withContext(defaultDispatcher) {
-        rangesQueries.getDateRangeTimestampsThatIntersectRange(
-            rangeStart = dateRange.start,
-            rangeEnd = dateRange.endInclusive
-        ).executeAsList()
+        rangesDao.getDateRangeTimestampsThatIntersectRange(
+            rangeStart = dateRange.start.toEpochDays(),
+            rangeEnd = dateRange.endInclusive.toEpochDays()
+        )
             .also { logger.d { "Found ${it.size} date range timestamps between ${dateRange.start} and ${dateRange.endInclusive}" } }
             .map { dateRangeTimestamp ->
                 EventRepository.DateRangeTimestamp(
-                    dateRange = dateRangeTimestamp.dateRangeStart..dateRangeTimestamp.dateRangeEnd,
-                    timestamp = dateRangeTimestamp.timestamp,
+                    dateRange = LocalDate.fromEpochDays(dateRangeTimestamp.dateRangeStart.toInt())..LocalDate.fromEpochDays(
+                        dateRangeTimestamp.dateRangeEnd.toInt()
+                    ),
+                    timestamp = Instant.fromEpochMilliseconds(dateRangeTimestamp.timestamp),
                 )
             }
     }
@@ -76,27 +78,27 @@ class DataBaseEventStorage(
         dateRange: LocalDateRange,
         timestamp: Instant,
     ) = withContext(defaultDispatcher) {
-        val timeZone =
-            TimeZone.of(
-                singleValuesQueries.getTextValue(TIMEZONE_KEY).executeAsOneOrNull()?.value_ ?: DEFAULT_API_TIMEZONE
-            )
+        val timeZone = TimeZone.of(
+            singleValuesDao.getTextValue(TIMEZONE_KEY)?.value ?: DEFAULT_API_TIMEZONE
+        )
 
-        eventsQueries.transaction {
-            eventsQueries.saveEvents(events, dateRange, timeZone)
-            saveDateRangeWithTimestamp(dateRange, timestamp)
+        database.useWriterConnection { transactor ->
+            transactor.immediateTransaction {
+                saveEvents(events, dateRange, timeZone)
+                saveDateRangeWithTimestamp(dateRange, timestamp)
+            }
         }
     }
 
-    private fun EventsQueries.saveEvents(
+    private suspend fun saveEvents(
         events: List<CalendarEvent>,
         dateRange: LocalDateRange,
         timeZone: TimeZone,
     ) {
-        val existingEvents = selectEventsInRangeWithDetails(
-            rangeStart = dateRange.start.atStartOfDayIn(timeZone),
-            rangeEnd = dateRange.endInclusive.atEndOfDayIn(timeZone),
-            mapper = ::GenericCacheEventWithDetails
-        ).executeAsList().toCalendarEvent()
+        val existingEvents = eventsDao.selectEventsInRangeWithDetails(
+            rangeStart = dateRange.start.atStartOfDayIn(timeZone).toEpochMilliseconds(),
+            rangeEnd = dateRange.endInclusive.atEndOfDayIn(timeZone).toEpochMilliseconds()
+        ).toCalendarEvent()
 
         val eventsToDelete = existingEvents.toMutableList()
         val eventsToUpsert = events.mapTo(mutableListOf<Pair<CalendarEvent, CalendarEvent?>>()) { it to null }
@@ -110,11 +112,11 @@ class DataBaseEventStorage(
                 eventsToUpsert.add(correspondingNewEvent to existingEvent)
             }
         }
-        deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
+        eventsDao.deleteEvents(eventsToDelete.map { calendarEvent -> calendarEvent.id })
         eventsToUpsert.forEach { (calendarEvent, existingEvent) -> replaceSingleEvent(calendarEvent, existingEvent) }
     }
 
-    private fun EventsQueries.replaceSingleEvent(newEvent: CalendarEvent, existingEvent: CalendarEvent?) {
+    private suspend fun replaceSingleEvent(newEvent: CalendarEvent, existingEvent: CalendarEvent?) {
         val doUpdateEvent: Boolean
         val doUpdateTaxonomies: Boolean // Necessary to populate DB after migration
         val doUpdateStatusType: Boolean // Necessary because lists of events don't have this data
@@ -132,35 +134,37 @@ class DataBaseEventStorage(
         }
 
         if (doUpdateEvent) {
-            replaceEvent(
-                id = newEvent.id,
-                creationDate = newEvent.creationDate,
-                modifiedDate = newEvent.modifiedDate,
-                title = newEvent.title,
-                url = newEvent.url,
-                startDate = newEvent.startDate,
-                endDate = newEvent.endDate,
-                enrollmentUrl = newEvent.enrollmentUrl,
-                eventStatusType = newEvent.eventStatusType,
-                eventAttendanceMode = newEvent.eventAttendanceMode,
+            eventsDao.replaceEvent(
+                RoomCalendarEvent(
+                    id = newEvent.id,
+                    creationDate = newEvent.creationDate.toEpochMilliseconds(),
+                    modifiedDate = newEvent.modifiedDate.toEpochMilliseconds(),
+                    title = newEvent.title,
+                    url = newEvent.url,
+                    startDate = newEvent.startDate.toEpochMilliseconds(),
+                    endDate = newEvent.endDate.toEpochMilliseconds(),
+                    enrollmentUrl = newEvent.enrollmentUrl,
+                    eventStatusType = newEvent.eventStatusType,
+                    eventAttendanceMode = newEvent.eventAttendanceMode,
+                )
             )
 
-            if (existingEvent != null) deleteImagesOfEvent(existingEvent.id)
-            newEvent.images.forEach { replaceEventImage(it.asCacheEventImage(newEvent.id)) }
+            if (existingEvent != null) eventsDao.deleteImagesOfEvent(existingEvent.id)
+            newEvent.images.forEach { eventsDao.replaceEventImage(it.asCacheEventImage(newEvent.id)) }
         }
 
         if (doUpdateTaxonomies) {
-            if (existingEvent != null) removeAllTaxonomiesFromCalendarEvent(existingEvent.id)
+            if (existingEvent != null) eventsDao.removeAllTaxonomiesFromCalendarEvent(existingEvent.id)
             newEvent.taxonomies.forEach {
-                addEventTaxonomy(
-                    CacheEventTaxonomy(
+                eventsDao.addEventTaxonomy(
+                    RoomEventTaxonomy(
                         slug = it.slug,
                         taxonomyType = it.taxonomyType,
                         name = it.name,
                     )
                 )
-                addTaxonomyToCalendarEvent(
-                    CalendarEvent_EventTaxonomy(
+                eventsDao.addTaxonomyToCalendarEvent(
+                    RoomCalendarEventEventTaxonomy(
                         calendarEventId = newEvent.id,
                         eventTaxonomySlug = it.slug,
                         eventTaxonomyType = it.taxonomyType,
@@ -169,93 +173,91 @@ class DataBaseEventStorage(
             }
         }
 
-        if (doUpdateStatusType) updateEventStatusType(newEvent.eventStatusType, newEvent.id)
-        if (doUpdateAttendanceMode) updateEventAttendanceMode(newEvent.eventAttendanceMode, newEvent.id)
+        if (doUpdateStatusType) eventsDao.updateEventStatusType(newEvent.eventStatusType, newEvent.id)
+        if (doUpdateAttendanceMode) eventsDao.updateEventAttendanceMode(newEvent.eventAttendanceMode, newEvent.id)
     }
 
-    private fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
-        rangesQueries.getDateRangeTimestampsThatIntersectRange(
-            rangeStart = dateRange.start,
-            rangeEnd = dateRange.endInclusive,
-        )
-            .executeAsList().forEach { existing ->
-                val startsBeforeNew = existing.dateRangeStart < dateRange.start
-                val endsAfterNew = existing.dateRangeEnd > dateRange.endInclusive
+    private suspend fun saveDateRangeWithTimestamp(dateRange: LocalDateRange, timestamp: Instant) {
+        rangesDao.getDateRangeTimestampsThatIntersectRange(
+            rangeStart = dateRange.start.toEpochDays(),
+            rangeEnd = dateRange.endInclusive.toEpochDays(),
+        ).forEach { existing ->
+            val existingStart = LocalDate.fromEpochDays(existing.dateRangeStart.toInt())
+            val existingEnd = LocalDate.fromEpochDays(existing.dateRangeEnd.toInt())
+            val startsBeforeNew = existingStart < dateRange.start
+            val endsAfterNew = existingEnd > dateRange.endInclusive
 
-                when {
-                    startsBeforeNew && endsAfterNew -> {
-                        // Existing range contains the new one
-                        rangesQueries.updateDateRangeTimestampWithId(
-                            id = existing.id,
-                            rangeStart = existing.dateRangeStart,
-                            rangeEnd = dateRange.start.previousDay(),
-                        )
-                        rangesQueries.insertDateRangeTimestamp(
-                            rangeStart = dateRange.endInclusive.nextDay(),
-                            rangeEnd = existing.dateRangeEnd,
+            when {
+                startsBeforeNew && endsAfterNew -> {
+                    rangesDao.updateDateRangeTimestampWithId(
+                        id = existing.id,
+                        rangeStart = existingStart.toEpochDays(),
+                        rangeEnd = dateRange.start.previousDay().toEpochDays(),
+                    )
+                    rangesDao.insertDateRangeTimestamp(
+                        RoomDateRangeTimestamp(
+                            dateRangeStart = dateRange.endInclusive.nextDay().toEpochDays(),
+                            dateRangeEnd = existingEnd.toEpochDays(),
                             timestamp = existing.timestamp,
                         )
-                    }
-
-                    startsBeforeNew ->
-                        // Existing range starts before the new one
-                        rangesQueries.updateDateRangeTimestampWithId(
-                            id = existing.id,
-                            rangeStart = existing.dateRangeStart,
-                            rangeEnd = dateRange.start.previousDay(),
-                        )
-
-                    endsAfterNew ->
-                        // Existing range ends after the new one
-                        rangesQueries.updateDateRangeTimestampWithId(
-                            id = existing.id,
-                            rangeStart = dateRange.endInclusive.nextDay(),
-                            rangeEnd = existing.dateRangeEnd,
-                        )
-
-                    else -> rangesQueries.deleteDateRangeTimestampWithId(existing.id)
+                    )
                 }
+
+                startsBeforeNew ->
+                    rangesDao.updateDateRangeTimestampWithId(
+                        id = existing.id,
+                        rangeStart = existingStart.toEpochDays(),
+                        rangeEnd = dateRange.start.previousDay().toEpochDays(),
+                    )
+
+                endsAfterNew ->
+                    rangesDao.updateDateRangeTimestampWithId(
+                        id = existing.id,
+                        rangeStart = dateRange.endInclusive.nextDay().toEpochDays(),
+                        rangeEnd = existingEnd.toEpochDays(),
+                    )
+
+                else -> rangesDao.deleteDateRangeTimestampWithId(existing.id)
             }
-        rangesQueries.insertDateRangeTimestamp(
-            rangeStart = dateRange.start,
-            rangeEnd = dateRange.endInclusive,
-            timestamp = timestamp
+        }
+        rangesDao.insertDateRangeTimestamp(
+            RoomDateRangeTimestamp(
+                dateRangeStart = dateRange.start.toEpochDays(),
+                dateRangeEnd = dateRange.endInclusive.toEpochDays(),
+                timestamp = timestamp.toEpochMilliseconds()
+            )
         )
     }
 
     override suspend fun saveEventsForDiff(calendarEvents: List<CalendarEvent>): Collection<EventDiff> =
         withContext(defaultDispatcher) {
             buildSet {
-                eventsQueries.transaction {
-                    val existingEvents = eventsQueries.selectEventsByIdWithDetails(
-                        id = calendarEvents.map { it.id },
-                        mapper = ::GenericCacheEventWithDetails
-                    ).executeAsList().toCalendarEvent()
+                val existingEvents = eventsDao.selectEventsByIdWithDetails(
+                    ids = calendarEvents.map { it.id }
+                ).toCalendarEvent()
 
-                    val eventsToUpsert = calendarEvents
-                        .mapTo(mutableListOf<Pair<CalendarEvent, CalendarEvent?>>()) { it to null }
+                val eventsToUpsert = calendarEvents
+                    .mapTo(mutableListOf<Pair<CalendarEvent, CalendarEvent?>>()) { it to null }
 
-                    existingEvents.forEach { existingEvent ->
-                        val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
+                existingEvents.forEach { existingEvent ->
+                    val correspondingNewEvent = calendarEvents.firstOrNull { it.id == existingEvent.id }
 
-                        if (correspondingNewEvent != null) {
-                            add(existingEvent diffWith correspondingNewEvent)
+                    if (correspondingNewEvent != null) {
+                        add(existingEvent diffWith correspondingNewEvent)
 
-                            eventsToUpsert.removeAll { it.first.id == correspondingNewEvent.id }
-                            eventsToUpsert.add(correspondingNewEvent to existingEvent)
-                        }
+                        eventsToUpsert.removeAll { it.first.id == correspondingNewEvent.id }
+                        eventsToUpsert.add(correspondingNewEvent to existingEvent)
                     }
+                }
 
-                    eventsToUpsert.forEach { (calendarEvent, existingEvent) ->
-                        eventsQueries.replaceSingleEvent(calendarEvent, existingEvent)
-                    }
+                eventsToUpsert.forEach { (calendarEvent, existingEvent) ->
+                    replaceSingleEvent(calendarEvent, existingEvent)
                 }
             }
         }
 
     override fun observeEventsById(ids: Collection<String>): Flow<Collection<CalendarEvent>> =
-        eventsQueries.selectEventsByIdWithDetails(id = ids, mapper = ::GenericCacheEventWithDetails).asFlow()
-            .mapToList(defaultDispatcher).map { rows -> rows.toCalendarEvent() }
+        eventsDao.observeEventsByIdWithDetails(ids.toList()).map { rows -> rows.toCalendarEvent() }
 
     private infix fun CalendarEvent.diffWith(other: CalendarEvent) = EventDiff(oldEvent = this, newEvent = other)
 
@@ -289,7 +291,7 @@ class DataBaseEventStorage(
         override val taxonomies: Collection<EventTaxonomy>,
     ) : CalendarEvent
 
-    private fun EventImage.asCacheEventImage(eventId: String) = CacheEventImage(
+    private fun EventImage.asCacheEventImage(eventId: String) = RoomEventImage(
         calendarEventId = eventId,
         id = id,
         url = url,
@@ -298,28 +300,7 @@ class DataBaseEventStorage(
         fileSize = fileSize.toLong(),
     )
 
-    private data class GenericCacheEventWithDetails(
-        val id: String,
-        val creationDate: Instant,
-        val modifiedDate: Instant,
-        val title: String,
-        val url: String,
-        val startDate: Instant,
-        val endDate: Instant,
-        val enrollmentUrl: String,
-        val eventStatusType: EventStatusType?,
-        val eventAttendanceMode: EventAttendanceMode?,
-        val imageId: String?,
-        val imageUrl: String?,
-        val imageWidth: Long?,
-        val imageHeight: Long?,
-        val imageFileSize: Long?,
-        val taxonomySlug: String?,
-        val taxonomyName: String?,
-        val taxonomyType: TaxonomyType?,
-    )
-
-    private fun List<GenericCacheEventWithDetails>.toCalendarEvent(): List<StorageCalendarEvent> = groupBy { it.id }
+    private fun List<RoomEventWithDetails>.toCalendarEvent(): List<StorageCalendarEvent> = groupBy { it.id }
         .map { (_, rowList) ->
             val calendarEvent = rowList.first()
 
@@ -355,12 +336,12 @@ class DataBaseEventStorage(
 
             StorageCalendarEvent(
                 id = calendarEvent.id,
-                creationDate = calendarEvent.creationDate,
-                modifiedDate = calendarEvent.modifiedDate,
+                creationDate = Instant.fromEpochMilliseconds(calendarEvent.creationDate),
+                modifiedDate = Instant.fromEpochMilliseconds(calendarEvent.modifiedDate),
                 title = calendarEvent.title,
                 url = calendarEvent.url,
-                startDate = calendarEvent.startDate,
-                endDate = calendarEvent.endDate,
+                startDate = Instant.fromEpochMilliseconds(calendarEvent.startDate),
+                endDate = Instant.fromEpochMilliseconds(calendarEvent.endDate),
                 enrollmentUrl = calendarEvent.enrollmentUrl,
                 images = eventImages,
                 eventStatusType = calendarEvent.eventStatusType,

@@ -21,10 +21,9 @@
 }
 -keep class kotlin.coroutines.jvm.internal.DebugMetadataKt
 
-# Regra para o SQLDelight
-# Mantém as classes geradas pelo SQLDelight
--keep class app.cash.sqldelight.** { *; }
--dontwarn app.cash.sqldelight.**
+# Regra para o Room
+# Mantém as implementações geradas pelo Room
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
 
 # Regra para o Koin
 # Mantém as definições de módulos e as anotações do Koin
